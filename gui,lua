@@ -25,24 +25,24 @@ local currentTheme = {
     Accent = Color3.fromRGB(59, 130, 246)
 }
 
-local Players = game:GetService("Players")
 local CoreGui = game:GetService("CoreGui")
-local UserInputService = game:GetService("UserInputService")
 
 local ScreenGui = Instance.new("ScreenGui")
 ScreenGui.Name = "DeathNoteVGui"
 ScreenGui.ResetOnSpawn = false
-ScreenGui.DisplayOrder = 999999
+ScreenGui.DisplayOrder = 2147483647
 ScreenGui.Parent = CoreGui
 
--- Мобильная плавающая кнопка (с закруглениями и логотипом)
+-- Мобильная плавающая кнопка (исправлено: добавлен Parent и ZIndex)
 local IconBtn = Instance.new("TextButton")
 IconBtn.Size = UDim2.new(0, 50, 0, 50)
-IconBtn.Position = UDim2.new(1, -75, 0, 120)
+IconBtn.Position = UDim2.new(0, 100, 0, 150)
 IconBtn.BackgroundColor3 = currentTheme.Background
 IconBtn.BorderSizePixel = 0
 IconBtn.Text = ""
 IconBtn.Active = true
+IconBtn.AutoButtonColor = false
+IconBtn.ZIndex = 9999
 IconBtn.Parent = ScreenGui
 
 local IconCorner = Instance.new("UICorner")
@@ -54,14 +54,17 @@ LogoImage.Size = UDim2.new(0, 40, 0, 40)
 LogoImage.Position = UDim2.new(0, 5, 0, 5)
 LogoImage.BackgroundTransparency = 1
 LogoImage.Image = "rbxassetid://112576205931289"
+LogoImage.ZIndex = 10000
 LogoImage.Parent = IconBtn
 
+-- Главное окно меню
 local MainFrame = Instance.new("Frame")
 MainFrame.Size = UDim2.new(0, 580, 0, 380)
 MainFrame.Position = UDim2.new(0.5, -290, 0.5, -190)
 MainFrame.BackgroundColor3 = currentTheme.Background
 MainFrame.BorderSizePixel = 0
 MainFrame.Visible = false
+MainFrame.ZIndex = 5000
 MainFrame.Parent = ScreenGui
 
 local MainCorner = Instance.new("UICorner")
@@ -470,7 +473,7 @@ end
 
 mobPages["Ladybug"].Visible = true
 
-local bossesData = {"King Beetle", "Mondo Chick", "Tunnel Bear", "Snail"}
+local bossData = {"King Beetle", "Mondo Chick", "Tunnel Bear", "Snail"}
 
 local BossSubTabsBar = Instance.new("ScrollingFrame")
 BossSubTabsBar.Size = UDim2.new(1, 0, 0, 30)
@@ -662,19 +665,14 @@ TextBox.FocusLost:Connect(function()
     Settings.Webhook = TextBox.Text
 end)
 
--- Ультра-надежный метод открытия по касанию для мобильных эксплойтов
+-- Открытие и закрытие главного меню по клику/тапу на иконку
 local isOpen = false
-local function toggleMenu()
+IconBtn.MouseButton1Click:Connect(function()
     isOpen = not isOpen
     MainFrame.Visible = isOpen
-end
+end)
 
--- Подключаем все возможные варианты кликов, чтобы мобильный эксплойт гарантированно перехватил касание
-IconBtn.MouseButton1Click:Connect(toggleMenu)
-IconBtn.TouchTap:Connect(toggleMenu)
-
-IconBtn.InputBegan:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-        toggleMenu()
-    end
+IconBtn.TouchTap:Connect(function()
+    isOpen = not isOpen
+    MainFrame.Visible = isOpen
 end)
