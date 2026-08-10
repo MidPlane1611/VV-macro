@@ -1,6 +1,6 @@
 -- Замени ссылки ниже на свои реальные Raw-ссылки с GitHub после загрузки файлов
 local settingsUrl = "https://raw.githubusercontent.com/MidPlane1611/VV-macro/refs/heads/main/settings.lua"
-local guiUrl = "ЗДЕСЬ_ССЫЛКА_НА_RAW_GUI.LUA"
+local guiUrl = "https://raw.githubusercontent.com/MidPlane1611/VV-macro/refs/heads/main/gui%2Clua"
 
 local successSettings, Settings = pcall(function()
     return loadstring(game:HttpGet(settingsUrl))()
