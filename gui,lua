@@ -4,217 +4,455 @@ local success, Settings = pcall(function()
 end)
 
 if not success or not Settings then
-    Settings = { Theme = "dark", ShowFPS = true, WebhookURL = "" }
+    Settings = { 
+        Theme = "dark", 
+        ShowFPS = true, 
+        SprinklerType = "Diamond Sprinkler",
+        SelectedField = "Pepper Patch",
+        FarmType = "Random",
+        ConvertAt = 100
+    }
 end
 
--- Палитры тем оформления
-local Themes = {
-    dark = {
-        Background = Color3.fromRGB(20, 20, 20),
-        Secondary = Color3.fromRGB(35, 35, 35),
-        Text = Color3.fromRGB(240, 240, 240),
-        Accent = Color3.fromRGB(120, 120, 255)
-    },
-    light = {
-        Background = Color3.fromRGB(240, 240, 240),
-        Secondary = Color3.fromRGB(220, 220, 220),
-        Text = Color3.fromRGB(20, 20, 20),
-        Accent = Color3.fromRGB(0, 120, 255)
-    },
-    lime = {
-        Background = Color3.fromRGB(15, 25, 15),
-        Secondary = Color3.fromRGB(25, 45, 25),
-        Text = Color3.fromRGB(200, 255, 200),
-        Accent = Color3.fromRGB(50, 255, 50)
-    },
-    black = {
-        Background = Color3.fromRGB(5, 5, 5),
-        Secondary = Color3.fromRGB(15, 15, 15),
-        Text = Color3.fromRGB(255, 255, 255),
-        Accent = Color3.fromRGB(255, 50, 50)
-    }
+local currentTheme = {
+    Background = Color3.fromRGB(24, 24, 27),
+    Header = Color3.fromRGB(18, 18, 20),
+    Secondary = Color3.fromRGB(35, 35, 39),
+    Text = Color3.fromRGB(240, 240, 245),
+    SubText = Color3.fromRGB(160, 160, 170),
+    Accent = Color3.fromRGB(59, 130, 246),
+    SubTabInActive = Color3.fromRGB(45, 45, 50)
 }
 
-local currentTheme = Themes[Settings.Theme] or Themes.dark
-
--- Создание GUI
+-- Главный контейнер GUI
 local ScreenGui = Instance.new("ScreenGui")
 ScreenGui.Name = "DeathNoteVGui"
 ScreenGui.ResetOnSpawn = false
 ScreenGui.Parent = game:GetService("CoreGui")
 
-local MainFrame = Instance.new("Frame")
-MainFrame.Size = UDim2.new(0, 50, 0, 50)
-MainFrame.Position = UDim2.new(1, -70, 0, 150) -- Позиция кнопки справа
-MainFrame.BackgroundColor3 = currentTheme.Background
-MainFrame.BorderSizePixel = 0
-MainFrame.ClipsDescendants = true
-MainFrame.Parent = ScreenGui
+-- Кнопка-иконка справа на экране (для вызова меню)
+local IconBtn = Instance.new("Frame")
+IconBtn.Size = UDim2.new(0, 45, 0, 45)
+IconBtn.Position = UDim2.new(1, -60, 0, 120)
+IconBtn.BackgroundColor3 = currentTheme.Background
+IconBtn.BorderSizePixel = 0
+IconBtn.Parent = ScreenGui
 
-local UICorner = Instance.new("UICorner")
-UICorner.CornerRadius = UDim.new(0, 12)
-UICorner.Parent = MainFrame
+local IconCorner = Instance.new("UICorner")
+IconCorner.CornerRadius = UDim.new(0, 8)
+IconCorner.Parent = IconBtn
 
--- Логотип (Твоя картинка по ID)
 local LogoImage = Instance.new("ImageLabel")
-LogoImage.Size = UDim2.new(0, 40, 0, 40)
-LogoImage.Position = UDim2.new(0, 5, 0, 5)
+LogoImage.Size = UDim2.new(0, 37, 0, 37)
+LogoImage.Position = UDim2.new(0, 4, 0, 4)
 LogoImage.BackgroundTransparency = 1
 LogoImage.Image = "rbxassetid://112576205931289"
-LogoImage.Parent = MainFrame
+LogoImage.Parent = IconBtn
 
--- Контейнер для функций
-local FunctionsContainer = Instance.new("ScrollingFrame")
-FunctionsContainer.Size = UDim2.new(1, -20, 1, -60)
-FunctionsContainer.Position = UDim2.new(0, 10, 0, 55)
-FunctionsContainer.BackgroundTransparency = 1
-FunctionsContainer.CanvasSize = UDim2.new(0, 0, 0, 350)
-FunctionsContainer.ScrollBarThickness = 4
-FunctionsContainer.Visible = false
-FunctionsContainer.Parent = MainFrame
+-- Главное окно макроса
+local MainFrame = Instance.new("Frame")
+MainFrame.Size = UDim2.new(0, 580, 0, 380)
+MainFrame.Position = UDim2.new(0.5, -290, 0.5, -190)
+MainFrame.BackgroundColor3 = currentTheme.Background
+MainFrame.BorderSizePixel = 0
+MainFrame.Visible = false
+MainFrame.Parent = ScreenGui
 
-local UIListLayout = Instance.new("UIListLayout")
-UIListLayout.SortOrder = Enum.SortOrder.LayoutOrder
-UIListLayout.Padding = UDim.new(0, 8)
-UIListLayout.Parent = FunctionsContainer
+local MainCorner = Instance.new("UICorner")
+MainCorner.CornerRadius = UDim.new(0, 8)
+MainCorner.Parent = MainFrame
 
--- Функция для создания кнопок-переключателей (Toggle)
-local function createToggle(name, defaultState, callback)
-    local ToggleButton = Instance.new("TextButton")
-    ToggleButton.Size = UDim2.new(1, 0, 0, 35)
-    ToggleButton.BackgroundColor3 = currentTheme.Secondary
-    ToggleButton.BorderSizePixel = 0
-    ToggleButton.Text = "  " .. name .. ": " .. (defaultState and "ON" or "OFF")
-    ToggleButton.TextColor3 = currentTheme.Text
-    ToggleButton.TextSize = 14
-    ToggleButton.Font = Enum.Font.SourceSansSemibold
-    ToggleButton.TextXAlignment = Enum.TextXAlignment.Left
-    ToggleButton.Parent = FunctionsContainer
+-- Верхняя панель главных вкладок
+local TopBar = Instance.new("Frame")
+TopBar.Size = UDim2.new(1, 0, 0, 40)
+TopBar.BackgroundColor3 = currentTheme.Header
+TopBar.BorderSizePixel = 0
+TopBar.Parent = MainFrame
+
+local TopBarCorner = Instance.new("UICorner")
+TopBarCorner.CornerRadius = UDim.new(0, 8)
+TopBarCorner.Parent = TopBar
+
+local FixCorner = Instance.new("Frame")
+FixCorner.Size = UDim2.new(1, 0, 0, 5)
+FixCorner.Position = UDim2.new(0, 0, 1, -5)
+FixCorner.BackgroundColor3 = currentTheme.Header
+FixCorner.BorderSizePixel = 0
+FixCorner.Parent = TopBar
+
+-- Контейнер верхних вкладок (Gather, Kill Mobs, Kill Boss, Settings)
+local MainTabsContainer = Instance.new("ScrollingFrame")
+MainTabsContainer.Size = UDim2.new(1, -60, 1, 0)
+MainTabsContainer.Position = UDim2.new(0, 15, 0, 0)
+MainTabsContainer.BackgroundTransparency = 1
+MainTabsContainer.CanvasSize = UDim2.new(0, 450, 0, 0)
+MainTabsContainer.ScrollBarThickness = 0
+MainTabsContainer.Parent = TopBar
+
+local MainTabsLayout = Instance.new("UIListLayout")
+MainTabsLayout.FillDirection = Enum.FillDirection.Horizontal
+MainTabsLayout.SortOrder = Enum.SortOrder.LayoutOrder
+MainTabsLayout.Padding = UDim.new(0, 18)
+MainTabsLayout.Parent = MainTabsContainer
+
+-- Кнопка закрытия/сворачивания
+local CloseBtn = Instance.new("TextButton")
+CloseBtn.Size = UDim2.new(0, 30, 0, 30)
+CloseBtn.Position = UDim2.new(1, -35, 0, 5)
+CloseBtn.BackgroundTransparency = 1
+CloseBtn.Text = "✕"
+CloseBtn.TextColor3 = currentTheme.SubText
+CloseBtn.TextSize = 16
+CloseBtn.Font = Enum.Font.SourceSansBold
+CloseBtn.Parent = TopBar
+CloseBtn.MouseButton1Click:Connect(function()
+    MainFrame.Visible = false
+    IconBtn.Visible = true
+end)
+
+-- Область под контент
+local ContentArea = Instance.new("Frame")
+ContentArea.Size = UDim2.new(1, 0, 1, -40)
+ContentArea.Position = UDim2.new(0, 0, 0, 40)
+ContentArea.BackgroundTransparency = 1
+ContentArea.Parent = MainFrame
+local mainPages = {}
+local function createMainPage(name)
+    local page = Instance.new("Frame")
+    page.Size = UDim2.new(1, 0, 1, 0)
+    page.BackgroundTransparency = 1
+    page.Visible = false
+    page.Parent = ContentArea
+    mainPages[name] = page
+    return page
+end
+
+local pageGather = createMainPage("Gather")
+local pageKillMobs = createMainPage("Kill Mobs")
+local pageKillBoss = createMainPage("Kill Boss")
+local pageSettings = createMainPage("Settings")
+
+local function switchMainPage(name)
+    for pName, pObj in pairs(mainPages) do
+        pObj.Visible = (pName == name)
+    end
+end
+switchMainPage("Gather")
+
+local function createMainTabButton(name, width)
+    local btn = Instance.new("TextButton")
+    btn.Size = UDim2.new(0, width or 75, 1, 0)
+    btn.BackgroundTransparency = 1
+    btn.Text = name
+    btn.TextColor3 = currentTheme.SubText
+    btn.TextSize = 13
+    btn.Font = Enum.Font.SourceSansSemibold
+    btn.Parent = MainTabsContainer
+
+    btn.MouseButton1Click:Connect(function()
+        switchMainPage(name)
+    end)
+end
+
+createMainTabButton("Gather", 65)
+createMainTabButton("Kill Mobs", 75)
+createMainTabButton("Kill Boss", 70)
+createMainTabButton("Settings", 70)
+
+-- ==========================================================
+-- НАПОЛНЕНИЕ ВКЛАДКИ GATHER
+-- ==========================================================
+local GatherScroll = Instance.new("ScrollingFrame")
+GatherScroll.Size = UDim2.new(1, -20, 1, -20)
+GatherScroll.Position = UDim2.new(0, 10, 0, 10)
+GatherScroll.BackgroundTransparency = 1
+GatherScroll.CanvasSize = UDim2.new(0, 0, 0, 300)
+GatherScroll.ScrollBarThickness = 3
+GatherScroll.Parent = pageGather
+
+local GatherLayout = Instance.new("UIListLayout")
+GatherLayout.SortOrder = Enum.SortOrder.LayoutOrder
+GatherLayout.Padding = UDim.new(0, 8)
+GatherLayout.Parent = GatherScroll
+
+local function createSelectorRow(parent, labelName, optionsList, defaultIdx, callback)
+    local Row = Instance.new("Frame")
+    Row.Size = UDim2.new(1, 0, 0, 42)
+    Row.BackgroundColor3 = currentTheme.Secondary
+    Row.BorderSizePixel = 0
+    Row.Parent = parent
 
     local Corner = Instance.new("UICorner")
-    Corner.CornerRadius = UDim.new(0, 8)
-    Corner.Parent = ToggleButton
+    Corner.CornerRadius = UDim.new(0, 6)
+    Corner.Parent = Row
+
+    local Label = Instance.new("TextLabel")
+    Label.Size = UDim2.new(0, 160, 1, 0)
+    Label.Position = UDim2.new(0, 14, 0, 0)
+    Label.BackgroundTransparency = 1
+    Label.Text = labelName
+    Label.TextColor3 = currentTheme.Text
+    Label.TextSize = 13
+    Label.Font = Enum.Font.SourceSansSemibold
+    Label.TextXAlignment = Enum.TextXAlignment.Left
+    Label.Parent = Row
+
+    local currentIndex = defaultIdx
+    local Btn = Instance.new("TextButton")
+    Btn.Size = UDim2.new(0, 150, 0, 28)
+    Btn.Position = UDim2.new(1, -160, 0.5, -14)
+    Btn.BackgroundColor3 = Color3.fromRGB(50, 50, 55)
+    Btn.Text = optionsList[currentIndex]
+    Btn.TextColor3 = currentTheme.Text
+    Btn.TextSize = 12
+    Btn.Font = Enum.Font.SourceSansBold
+    Btn.Parent = Row
+
+    local BtnCorner = Instance.new("UICorner")
+    BtnCorner.CornerRadius = UDim.new(0, 6)
+    BtnCorner.Parent = Btn
+
+    Btn.MouseButton1Click:Connect(function()
+        currentIndex = currentIndex % #optionsList + 1
+        Btn.Text = optionsList[currentIndex]
+        callback(optionsList[currentIndex])
+    end)
+end
+
+-- 1. Выбор поля для фарма
+local fields = {"Pepper Patch", "Coconut Field", "Pineapple Patch", "Stump Field", "Mountain Top", "Spider Field"}
+createSelectorRow(GatherScroll, "Select Field", fields, 1, function(selected)
+    Settings.SelectedField = selected
+end)
+
+-- 2. Тип фарма (пока только Random, остальные добавим позже)
+local farmTypes = {"Random"}
+createSelectorRow(GatherScroll, "Farm Type", farmTypes, 1, function(selected)
+    Settings.FarmType = selected
+end)
+
+-- 3. Выбор типа спринклера (включая Diamond Sprinkler)
+local sprinklers = {"Basic Sprinkler", "Silver Sprinkler", "Golden Sprinkler", "Diamond Sprinkler", "Supreme Sprinkler"}
+createSelectorRow(GatherScroll, "Sprinkler Type", sprinklers, 4, function(selected)
+    Settings.SprinklerType = selected
+end)
+-- 4. Переработка пыльцы
+local convertModes = {"At 100% Bag", "At 80% Bag", "Every 5 Minutes", "Manual Only"}
+createSelectorRow(GatherScroll, "Pollen Conversion", convertModes, 1, function(selected)
+    Settings.ConvertMode = selected
+end)
+
+
+-- ==========================================================
+-- НАПОЛНЕНИЕ ВКЛАДОК KILL MOBS И KILL BOSS
+-- ==========================================================
+local MobsScroll = Instance.new("ScrollingFrame")
+MobsScroll.Size = UDim2.new(1, -20, 1, -20)
+MobsScroll.Position = UDim2.new(0, 10, 0, 10)
+MobsScroll.BackgroundTransparency = 1
+MobsScroll.CanvasSize = UDim2.new(0, 0, 0, 200)
+MobsScroll.ScrollBarThickness = 3
+MobsScroll.Parent = pageKillMobs
+
+local MobsLayout = Instance.new("UIListLayout")
+MobsLayout.SortOrder = Enum.SortOrder.LayoutOrder
+MobsLayout.Padding = UDim.new(0, 8)
+MobsLayout.Parent = MobsScroll
+
+local BossScroll = Instance.new("ScrollingFrame")
+BossScroll.Size = UDim2.new(1, -20, 1, -20)
+BossScroll.Position = UDim2.new(0, 10, 0, 10)
+BossScroll.BackgroundTransparency = 1
+BossScroll.CanvasSize = UDim2.new(0, 0, 0, 200)
+BossScroll.ScrollBarThickness = 3
+BossScroll.Parent = pageKillBoss
+
+local BossLayout = Instance.new("UIListLayout")
+BossLayout.SortOrder = Enum.SortOrder.LayoutOrder
+BossLayout.Padding = UDim.new(0, 8)
+BossLayout.Parent = BossScroll
+
+local function createToggleRow(parent, name, defaultState, callback)
+    local Row = Instance.new("Frame")
+    Row.Size = UDim2.new(1, 0, 0, 40)
+    Row.BackgroundColor3 = currentTheme.Secondary
+    Row.BorderSizePixel = 0
+    Row.Parent = parent
+
+    local Corner = Instance.new("UICorner")
+    Corner.CornerRadius = UDim.new(0, 6)
+    Corner.Parent = Row
+
+    local Label = Instance.new("TextLabel")
+    Label.Size = UDim2.new(1, -60, 1, 0)
+    Label.Position = UDim2.new(0, 14, 0, 0)
+    Label.BackgroundTransparency = 1
+    Label.Text = name
+    Label.TextColor3 = currentTheme.Text
+    Label.TextSize = 13
+    Label.Font = Enum.Font.SourceSansSemibold
+    Label.TextXAlignment = Enum.TextXAlignment.Left
+    Label.Parent = Row
+
+    local ToggleBtn = Instance.new("TextButton")
+    ToggleBtn.Size = UDim2.new(0, 40, 0, 24)
+    ToggleBtn.Position = UDim2.new(1, -50, 0.5, -12)
+    ToggleBtn.BackgroundColor3 = defaultState and currentTheme.Accent or Color3.fromRGB(60, 60, 65)
+    ToggleBtn.Text = ""
+    ToggleBtn.Parent = Row
+
+    local ToggleCorner = Instance.new("UICorner")
+    ToggleCorner.CornerRadius = UDim.new(1, 0)
+    ToggleCorner.Parent = ToggleBtn
 
     local state = defaultState
-    ToggleButton.MouseButton1Click:Connect(function()
+    ToggleBtn.MouseButton1Click:Connect(function()
         state = not state
-        ToggleButton.Text = "  " .. name .. ": " .. (state and "ON" or "OFF")
+        ToggleBtn.BackgroundColor3 = state and currentTheme.Accent or Color3.fromRGB(60, 60, 65)
         callback(state)
     end)
 end
 
--- Счётчик FPS
-if Settings.ShowFPS then
-    local FpsLabel = Instance.new("TextLabel")
-    FpsLabel.Size = UDim2.new(1, 0, 0, 35)
-    FpsLabel.BackgroundColor3 = currentTheme.Secondary
-    FpsLabel.BorderSizePixel = 0
-    FpsLabel.TextColor3 = currentTheme.Accent
-    FpsLabel.TextSize = 14
-    FpsLabel.Font = Enum.Font.SourceSansBold
-    FpsLabel.Text = "  FPS: calculating..."
-    FpsLabel.Parent = FunctionsContainer
-local Corner = Instance.new("UICorner")
-    Corner.CornerRadius = UDim.new(0, 8)
-    Corner.Parent = FpsLabel
+createToggleRow(MobsScroll, "Auto Farm Mobs", false, function(state) end)
+createToggleRow(BossScroll, "Auto Farm Boss", false, function(state) end)
 
-    task.spawn(function()
-        local RunService = game:GetService("RunService")
-        local lastUpdate = tick()
-        local frames = 0
-        RunService.RenderStepped:Connect(function()
-            frames = frames + 1
-            if tick() - lastUpdate >= 1 then
-                FpsLabel.Text = "  FPS: " .. frames
-                frames = 0
-                lastUpdate = tick()
-            end
-        end)
+
+-- ==========================================================
+-- НАСТРОЙКИ (SETTINGS) С ПОДВКЛАДКАМИ
+-- ==========================================================
+local SubTabsBar = Instance.new("ScrollingFrame")
+SubTabsBar.Size = UDim2.new(1, -20, 0, 35)
+SubTabsBar.Position = UDim2.new(0, 15, 0, 12)
+SubTabsBar.BackgroundTransparency = 1
+SubTabsBar.CanvasSize = UDim2.new(0, 350, 0, 0)
+SubTabsBar.ScrollBarThickness = 0
+SubTabsBar.Parent = pageSettings
+
+local SubTabsLayout = Instance.new("UIListLayout")
+SubTabsLayout.FillDirection = Enum.FillDirection.Horizontal
+SubTabsLayout.SortOrder = Enum.SortOrder.LayoutOrder
+SubTabsLayout.Padding = UDim.new(0, 8)
+SubTabsLayout.Parent = SubTabsBar
+
+local SubContentArea = Instance.new("Frame")
+SubContentArea.Size = UDim2.new(1, -30, 1, -60)
+SubContentArea.Position = UDim2.new(0, 15, 0, 55)
+SubContentArea.BackgroundTransparency = 1
+SubContentArea.Parent = pageSettings
+local subPages = {}
+local function createSubPage(name)
+    local sp = Instance.new("ScrollingFrame")
+    sp.Size = UDim2.new(1, 0, 1, 0)
+    sp.BackgroundTransparency = 1
+    sp.CanvasSize = UDim2.new(0, 0, 0, 200)
+    sp.ScrollBarThickness = 3
+    sp.Visible = false
+    sp.Parent = SubContentArea
+
+    local layout = Instance.new("UIListLayout")
+    layout.SortOrder = Enum.SortOrder.LayoutOrder
+    layout.Padding = UDim.new(0, 8)
+    layout.Parent = sp
+
+    subPages[name] = sp
+    return sp
+end
+
+local subHotkeys = createSubPage("Hotkeys")
+local subCapture = createSubPage("Capture")
+local subMisc = createSubPage("Misc")
+
+local function switchSubPage(name)
+    for sName, sObj in pairs(subPages) do
+        sObj.Visible = (sName == name)
+    end
+end
+switchSubPage("Hotkeys")
+
+local function createSubTabButton(name)
+    local btn = Instance.new("TextButton")
+    btn.Size = UDim2.new(0, 85, 0, 28)
+    btn.BackgroundColor3 = currentTheme.SubTabInActive
+    btn.Text = name
+    btn.TextColor3 = currentTheme.Text
+    btn.TextSize = 12
+    btn.Font = Enum.Font.SourceSansSemibold
+    btn.Parent = SubTabsBar
+
+    local corner = Instance.new("UICorner")
+    corner.CornerRadius = UDim.new(0, 6)
+    corner.Parent = btn
+
+    btn.MouseButton1Click:Connect(function()
+        switchSubPage(name)
     end)
 end
 
--- Игровые функции (Kill Mobs, Gather, Kill Boss)
-createToggle("Kill Mobs (Auto Farm)", false, function(state)
-    if state then
-        task.spawn(function()
-            while task.wait(0.5) do
-                local enemies = workspace:FindFirstChild("Enemies")
-                if enemies then
-                    for _, enemy in ipairs(enemies:GetChildren()) do
-                        local human = enemy:FindFirstChildOfClass("Humanoid")
-                        local root = enemy:FindFirstChild("HumanoidRootPart")
-                        if human and human.Health > 0 and root then
-                            print("Фарм моба:", enemy.Name)
-                            break
-                        end
-                    end
-                end
-            end
-        end)
-    end
-end)
+createSubTabButton("Hotkeys")
+createSubTabButton("Capture")
+createSubTabButton("Misc")
 
-createToggle("Gather Items", false, function(state)
-    if state then
-        task.spawn(function()
-            while task.wait(1) do
-                local items = workspace:FindFirstChild("Items")
-                if items then
-                    local player = game.Players.LocalPlayer
-                    local char = player.Character
-                    if char and char:FindFirstChild("HumanoidRootPart") then
-                        for _, item in ipairs(items:GetChildren()) do
-                            if item:IsA("BasePart") then
-                                char.HumanoidRootPart.CFrame = item.CFrame
-                                task.wait(0.2)
-                            end
-                        end
-                    end
-                end
-            end
-        end)
-    end
-end)
+local function createHotkeyRow(parent, actionName, keyName)
+    local Row = Instance.new("Frame")
+    Row.Size = UDim2.new(1, 0, 0, 40)
+    Row.BackgroundColor3 = currentTheme.Secondary
+    Row.BorderSizePixel = 0
+    Row.Parent = parent
 
-createToggle("Kill Boss", false, function(state)
-    if state then
-        task.spawn(function()
-            while task.wait(1) do
-                local boss = workspace:FindFirstChild("Boss")
-                if boss and boss:FindFirstChild("HumanoidRootPart") then
-                    local human = boss:FindFirstChildOfClass("Humanoid")
-                    if human and human.Health > 0 then
-                        print("Босс обнаружен:", boss.Name)
-                    end
-                end
-            end
-        end)
-    end
-end)
+    local Corner = Instance.new("UICorner")
+    Corner.CornerRadius = UDim.new(0, 6)
+    Corner.Parent = Row
 
--- Анимация открытия по центру экрана
+    local Label = Instance.new("TextLabel")
+    Label.Size = UDim2.new(1, -100, 1, 0)
+    Label.Position = UDim2.new(0, 14, 0, 0)
+    Label.BackgroundTransparency = 1
+    Label.Text = actionName
+    Label.TextColor3 = currentTheme.Text
+    Label.TextSize = 13
+    Label.Font = Enum.Font.SourceSansSemibold
+    Label.TextXAlignment = Enum.TextXAlignment.Left
+    Label.Parent = Row
+
+    local KeyBox = Instance.new("TextButton")
+    KeyBox.Size = UDim2.new(0, 36, 0, 24)
+    KeyBox.Position = UDim2.new(1, -85, 0.5, -12)
+    KeyBox.BackgroundColor3 = Color3.fromRGB(50, 50, 55)
+    KeyBox.Text = keyName
+    KeyBox.TextColor3 = currentTheme.Text
+    KeyBox.TextSize = 12
+    KeyBox.Font = Enum.Font.SourceSansBold
+    KeyBox.Parent = Row
+
+    local KeyCorner = Instance.new("UICorner")
+    KeyCorner.CornerRadius = UDim.new(0, 4)
+    KeyCorner.Parent = KeyBox
+
+    local CircleBtn = Instance.new("TextButton")
+    CircleBtn.Size = UDim2.new(0, 24, 0, 24)
+    CircleBtn.Position = UDim2.new(1, -40, 0.5, -12)
+    CircleBtn.BackgroundColor3 = Color3.fromRGB(50, 50, 55)
+    CircleBtn.Text = "O"
+    CircleBtn.TextColor3 = currentTheme.Text
+    CircleBtn.TextSize = 11
+    CircleBtn.Font = Enum.Font.SourceSansBold
+    CircleBtn.Parent = Row
+
+    local CircleCorner = Instance.new("UICorner")
+    CircleCorner.CornerRadius = UDim.new(1, 0)
+    CircleCorner.Parent = CircleBtn
+end
+
+createHotkeyRow(subHotkeys, "Start Macro", "F1")
+createHotkeyRow(subHotkeys, "Pause Macro", "F2")
+createHotkeyRow(subHotkeys, "Stop Macro", "F3")
+
+-- Открытие/скрытие интерфейса по клику на плавающую иконку
 local isOpen = false
-MainFrame.InputBegan:Connect(function(input)
+IconBtn.InputBegan:Connect(function(input)
     if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
         isOpen = not isOpen
-        if isOpen then
-            MainFrame:TweenSizeAndPosition(
-                UDim2.new(0, 240, 0, 320),
-                UDim2.new(0.5, -120, 0.5, -160), -- Центр экрана
-                Enum.EasingDirection.Out, 
-                Enum.EasingStyle.Quad, 
-                0.3, true
-            )
-            FunctionsContainer.Visible = true
-        else
-            MainFrame:TweenSizeAndPosition(
-                UDim2.new(0, 50, 0, 50),
-                UDim2.new(1, -70, 0, 150), -- Возврат на исходное место
-                Enum.EasingDirection.Out, 
-                Enum.EasingStyle.Quad, 
-                0.3, true
-            )
-            FunctionsContainer.Visible = false
-        end
+        MainFrame.Visible = isOpen
+        IconBtn.Visible = not isOpen
     end
 end)
