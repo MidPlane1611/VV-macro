@@ -1,58 +1,3 @@
--- settings.lua
-local Settings = {
-    Theme = "dark", -- варианты: "light", "dark", "lime", "black"
-    ShowFPS = true,
-    WebhookURL = ""
-}
-
--- gui.lua
-local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Name = "DeathNoteVGui"
-ScreenGui.Parent = game.CoreGui
-
-local MainFrame = Instance.new("Frame")
-MainFrame.Size = UDim2.new(0, 50, 0, 50)
-MainFrame.Position = UDim2.new(1, -60, 0, 10)
-MainFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
-MainFrame.BorderSizePixel = 0
-MainFrame.Parent = ScreenGui
-
-local UICorner = Instance.new("UICorner")
-UICorner.CornerRadius = UDim.new(0, 12)
-UICorner.Parent = MainFrame
-
-local TitleLabel = Instance.new("TextLabel")
-TitleLabel.Size = UDim2.new(1, 0, 1, 0)
-TitleLabel.BackgroundTransparency = 1
-TitleLabel.Text = "V"
-TitleLabel.TextColor3 = Color3.fromRGB(240, 240, 240)
-TitleLabel.TextSize = 24
-TitleLabel.Font = Enum.Font.SourceSansBold
-TitleLabel.Parent = MainFrame
-
-local FunctionsContainer = Instance.new("ScrollingFrame")
-FunctionsContainer.Size = UDim2.new(0, 220, 0, 200)
-FunctionsContainer.Position = UDim2.new(0, 0, 0, 60)
-FunctionsContainer.BackgroundTransparency = 1
-FunctionsContainer.Visible = false
-FunctionsContainer.Parent = MainFrame
-
-local isOpen = false
-
-MainFrame.InputBegan:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-        isOpen = not isOpen
-        if isOpen then
-            MainFrame:TweenSize(UDim2.new(0, 220, 0, 270), Enum.EasingDirection.Out, Enum.EasingStyle.Quad, 0.2, true)
-            FunctionsContainer.Visible = true
-        else
-            MainFrame:TweenSize(UDim2.new(0, 50, 0, 50), Enum.EasingDirection.Out, Enum.EasingStyle.Quad, 0.2, true)
-            FunctionsContainer.Visible = false
-        end
-    end
-end)
-
-print("Скрипт успешно запущен!")
 -- Загрузка настроек
 local success, Settings = pcall(function()
     return loadstring(readfile("settings.lua"))()
@@ -110,15 +55,13 @@ local UICorner = Instance.new("UICorner")
 UICorner.CornerRadius = UDim.new(0, 12)
 UICorner.Parent = MainFrame
 
--- Главная кнопка / Логотип (Буква V)
-local TitleLabel = Instance.new("TextLabel")
-TitleLabel.Size = UDim2.new(0, 50, 0, 50)
-TitleLabel.BackgroundTransparency = 1
-TitleLabel.Text = "V"
-TitleLabel.TextColor3 = currentTheme.Text
-TitleLabel.TextSize = 24
-TitleLabel.Font = Enum.Font.SourceSansBold
-TitleLabel.Parent = MainFrame
+-- Логотип (Твоя картинка по ID)
+local LogoImage = Instance.new("ImageLabel")
+LogoImage.Size = UDim2.new(0, 40, 0, 40)
+LogoImage.Position = UDim2.new(0, 5, 0, 5)
+LogoImage.BackgroundTransparency = 1
+LogoImage.Image = "rbxassetid://112576205931289"
+LogoImage.Parent = MainFrame
 
 -- Контейнер для функций
 local FunctionsContainer = Instance.new("ScrollingFrame")
@@ -171,7 +114,7 @@ if Settings.ShowFPS then
     FpsLabel.Font = Enum.Font.SourceSansBold
     FpsLabel.Text = "  FPS: calculating..."
     FpsLabel.Parent = FunctionsContainer
-    local Corner = Instance.new("UICorner")
+local Corner = Instance.new("UICorner")
     Corner.CornerRadius = UDim.new(0, 8)
     Corner.Parent = FpsLabel
 
@@ -190,7 +133,7 @@ if Settings.ShowFPS then
     end)
 end
 
--- Добавление основных игровых функций (Kill Mobs, Gather, Kill Boss)
+-- Игровые функции (Kill Mobs, Gather, Kill Boss)
 createToggle("Kill Mobs (Auto Farm)", false, function(state)
     if state then
         task.spawn(function()
@@ -249,7 +192,7 @@ createToggle("Kill Boss", false, function(state)
     end
 end)
 
--- Анимация открытия/закрытия интерфейса по клику на V
+-- Анимация открытия/закрытия интерфейса по клику на картинку
 local isOpen = false
 MainFrame.InputBegan:Connect(function(input)
     if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
