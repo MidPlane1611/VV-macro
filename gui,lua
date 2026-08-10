@@ -25,28 +25,32 @@ local currentTheme = {
     Accent = Color3.fromRGB(59, 130, 246)
 }
 
--- Главный контейнер GUI
+local Players = game:GetService("Players")
+local CoreGui = game:GetService("CoreGui")
+local UserInputService = game:GetService("UserInputService")
+
 local ScreenGui = Instance.new("ScreenGui")
 ScreenGui.Name = "DeathNoteVGui"
 ScreenGui.ResetOnSpawn = false
 ScreenGui.DisplayOrder = 999999
-ScreenGui.Parent = game:GetService("CoreGui")
+ScreenGui.Parent = CoreGui
 
+-- Мобильная плавающая кнопка (с закруглениями и логотипом)
 local IconBtn = Instance.new("TextButton")
-IconBtn.Size = UDim2.new(0, 48, 0, 48)
-IconBtn.Position = UDim2.new(1, -70, 0, 120)
+IconBtn.Size = UDim2.new(0, 50, 0, 50)
+IconBtn.Position = UDim2.new(1, -75, 0, 120)
 IconBtn.BackgroundColor3 = currentTheme.Background
 IconBtn.BorderSizePixel = 0
 IconBtn.Text = ""
-IconBtn.AutoButtonColor = false
+IconBtn.Active = true
 IconBtn.Parent = ScreenGui
 
 local IconCorner = Instance.new("UICorner")
-IconCorner.CornerRadius = UDim.new(0, 8)
+IconCorner.CornerRadius = UDim.new(0, 10)
 IconCorner.Parent = IconBtn
 
 local LogoImage = Instance.new("ImageLabel")
-LogoImage.Size = UDim2.new(0, 38, 0, 38)
+LogoImage.Size = UDim2.new(0, 40, 0, 40)
 LogoImage.Position = UDim2.new(0, 5, 0, 5)
 LogoImage.BackgroundTransparency = 1
 LogoImage.Image = "rbxassetid://112576205931289"
@@ -314,6 +318,7 @@ end)
 createSelectorRow(pageGather, "Pollen Conversion", {"At 100% Bag", "At 80% Bag", "Every 5 Minutes", "Manual Only"}, 1, function(val)
     Settings.ConvertMode = val
 end)
+
 local mobsData = {
     {Name = "Ladybug", Fields = {"Mushroom", "Strawberry", "Clover"}},
     {Name = "Rhino Beetle", Fields = {"Clover", "Blue Flower", "Bamboo", "Pineapple"}},
@@ -657,9 +662,19 @@ TextBox.FocusLost:Connect(function()
     Settings.Webhook = TextBox.Text
 end)
 
+-- Ультра-надежный метод открытия по касанию для мобильных эксплойтов
 local isOpen = false
-IconBtn.MouseButton1Click:Connect(function()
+local function toggleMenu()
     isOpen = not isOpen
     MainFrame.Visible = isOpen
-end)
+end
 
+-- Подключаем все возможные варианты кликов, чтобы мобильный эксплойт гарантированно перехватил касание
+IconBtn.MouseButton1Click:Connect(toggleMenu)
+IconBtn.TouchTap:Connect(toggleMenu)
+
+IconBtn.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+        toggleMenu()
+    end
+end)
