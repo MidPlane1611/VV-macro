@@ -29,14 +29,16 @@ local currentTheme = {
 local ScreenGui = Instance.new("ScreenGui")
 ScreenGui.Name = "DeathNoteVGui"
 ScreenGui.ResetOnSpawn = false
+ScreenGui.DisplayOrder = 999999
 ScreenGui.Parent = game:GetService("CoreGui")
 
--- Кнопка-иконка справа на экране (для вызова меню)
-local IconBtn = Instance.new("Frame")
-IconBtn.Size = UDim2.new(0, 45, 0, 45)
-IconBtn.Position = UDim2.new(1, -60, 0, 120)
+local IconBtn = Instance.new("TextButton")
+IconBtn.Size = UDim2.new(0, 48, 0, 48)
+IconBtn.Position = UDim2.new(1, -70, 0, 120)
 IconBtn.BackgroundColor3 = currentTheme.Background
 IconBtn.BorderSizePixel = 0
+IconBtn.Text = ""
+IconBtn.AutoButtonColor = false
 IconBtn.Parent = ScreenGui
 
 local IconCorner = Instance.new("UICorner")
@@ -44,13 +46,12 @@ IconCorner.CornerRadius = UDim.new(0, 8)
 IconCorner.Parent = IconBtn
 
 local LogoImage = Instance.new("ImageLabel")
-LogoImage.Size = UDim2.new(0, 37, 0, 37)
-LogoImage.Position = UDim2.new(0, 4, 0, 4)
+LogoImage.Size = UDim2.new(0, 38, 0, 38)
+LogoImage.Position = UDim2.new(0, 5, 0, 5)
 LogoImage.BackgroundTransparency = 1
 LogoImage.Image = "rbxassetid://112576205931289"
 LogoImage.Parent = IconBtn
 
--- Главное окно макроса
 local MainFrame = Instance.new("Frame")
 MainFrame.Size = UDim2.new(0, 580, 0, 380)
 MainFrame.Position = UDim2.new(0.5, -290, 0.5, -190)
@@ -63,7 +64,6 @@ local MainCorner = Instance.new("UICorner")
 MainCorner.CornerRadius = UDim.new(0, 8)
 MainCorner.Parent = MainFrame
 
--- Верхняя панель главных вкладок
 local TopBar = Instance.new("Frame")
 TopBar.Size = UDim2.new(1, 0, 0, 40)
 TopBar.BackgroundColor3 = currentTheme.Header
@@ -81,7 +81,6 @@ FixCorner.BackgroundColor3 = currentTheme.Header
 FixCorner.BorderSizePixel = 0
 FixCorner.Parent = TopBar
 
--- Контейнер верхних вкладок (Gather, Kill Mobs, Kill Boss, Settings)
 local MainTabsContainer = Instance.new("ScrollingFrame")
 MainTabsContainer.Size = UDim2.new(1, -60, 1, 0)
 MainTabsContainer.Position = UDim2.new(0, 15, 0, 0)
@@ -96,7 +95,6 @@ MainTabsLayout.SortOrder = Enum.SortOrder.LayoutOrder
 MainTabsLayout.Padding = UDim.new(0, 20)
 MainTabsLayout.Parent = MainTabsContainer
 
--- Кнопка закрытия/сворачивания
 local CloseBtn = Instance.new("TextButton")
 CloseBtn.Size = UDim2.new(0, 30, 0, 30)
 CloseBtn.Position = UDim2.new(1, -35, 0, 5)
@@ -111,12 +109,12 @@ CloseBtn.MouseButton1Click:Connect(function()
     IconBtn.Visible = true
 end)
 
--- Область под контент
 local ContentArea = Instance.new("Frame")
 ContentArea.Size = UDim2.new(1, 0, 1, -40)
 ContentArea.Position = UDim2.new(0, 0, 0, 40)
 ContentArea.BackgroundTransparency = 1
 ContentArea.Parent = MainFrame
+
 local mainPages = {}
 local function createMainPage(name)
     local page = Instance.new("ScrollingFrame")
@@ -169,9 +167,6 @@ createMainTabButton("Kill Mobs", 70)
 createMainTabButton("Kill Boss", 65)
 createMainTabButton("Settings", 60)
 
--- ==========================================================
--- 1. НАПОЛНЕНИЕ ВКЛАДКИ GATHER
--- ==========================================================
 local function createSelectorRow(parent, labelName, optionsList, defaultIdx, callback)
     local Row = Instance.new("Frame")
     Row.Size = UDim2.new(1, 0, 0, 40)
@@ -234,7 +229,8 @@ local function createRayfieldDropdown(parent, labelName, items, defaultVal, call
     local Corner = Instance.new("UICorner")
     Corner.CornerRadius = UDim.new(0, 6)
     Corner.Parent = Row
-local Label = Instance.new("TextLabel")
+
+    local Label = Instance.new("TextLabel")
     Label.Size = UDim2.new(0, 160, 1, 0)
     Label.Position = UDim2.new(0, 14, 0, 0)
     Label.BackgroundTransparency = 1
@@ -318,11 +314,6 @@ end)
 createSelectorRow(pageGather, "Pollen Conversion", {"At 100% Bag", "At 80% Bag", "Every 5 Minutes", "Manual Only"}, 1, function(val)
     Settings.ConvertMode = val
 end)
-
-
--- ==========================================================
--- 2. НАПОЛНЕНИЕ ВКЛАДКИ KILL MOBS (С подвкладками, Kill-переключателем и приоритетом 1-6)
--- ==========================================================
 local mobsData = {
     {Name = "Ladybug", Fields = {"Mushroom", "Strawberry", "Clover"}},
     {Name = "Rhino Beetle", Fields = {"Clover", "Blue Flower", "Bamboo", "Pineapple"}},
@@ -332,11 +323,10 @@ local mobsData = {
     {Name = "Werewolf", Fields = {"Cactus"}}
 }
 
--- Подпанель вкладок мобов
 local MobsSubTabsBar = Instance.new("ScrollingFrame")
 MobsSubTabsBar.Size = UDim2.new(1, 0, 0, 30)
 MobsSubTabsBar.BackgroundTransparency = 1
-MobsSubTabsBar.CanvasSize = UDim2.new(0, 400, 0, 0)
+MobsSubTabsBar.CanvasSize = UDim2.new(0, 450, 0, 0)
 MobsSubTabsBar.ScrollBarThickness = 0
 MobsSubTabsBar.Parent = pageKillMobs
 
@@ -345,6 +335,7 @@ MobsSubLayout.FillDirection = Enum.FillDirection.Horizontal
 MobsSubLayout.SortOrder = Enum.SortOrder.LayoutOrder
 MobsSubLayout.Padding = UDim.new(0, 6)
 MobsSubLayout.Parent = MobsSubTabsBar
+
 local MobsContentContainer = Instance.new("Frame")
 MobsContentContainer.Size = UDim2.new(1, 0, 1, -38)
 MobsContentContainer.BackgroundTransparency = 1
@@ -353,7 +344,6 @@ MobsContentContainer.Parent = pageKillMobs
 local mobPages = {}
 
 for _, mob in ipairs(mobsData) do
-    -- Кнопка подвкладки
     local SubBtn = Instance.new("TextButton")
     SubBtn.Size = UDim2.new(0, 85, 1, 0)
     SubBtn.BackgroundColor3 = currentTheme.Secondary
@@ -367,12 +357,11 @@ for _, mob in ipairs(mobsData) do
     SubCorner.CornerRadius = UDim.new(0, 6)
     SubCorner.Parent = SubBtn
 
-    -- Контейнер страницы моба
     local MobPage = Instance.new("ScrollingFrame")
     MobPage.Size = UDim2.new(1, 0, 1, 0)
     MobPage.Position = UDim2.new(0, 0, 0, 8)
     MobPage.BackgroundTransparency = 1
-    MobPage.CanvasSize = UDim2.new(0, 0, 0, 250)
+    MobPage.CanvasSize = UDim2.new(0, 0, 0, 300)
     MobPage.ScrollBarThickness = 3
     MobPage.Visible = false
     MobPage.Parent = MobsContentContainer
@@ -389,7 +378,6 @@ for _, mob in ipairs(mobsData) do
         MobPage.Visible = true
     end)
 
-    -- Переключатель Kill для моба
     local KillRow = Instance.new("Frame")
     KillRow.Size = UDim2.new(1, 0, 0, 40)
     KillRow.BackgroundColor3 = currentTheme.Secondary
@@ -429,7 +417,6 @@ for _, mob in ipairs(mobsData) do
         Settings["Kill" .. mob.Name] = kState
     end)
 
-    -- Переключатели полей для данного моба
     for _, fieldName in ipairs(mob.Fields) do
         local FRow = Instance.new("Frame")
         FRow.Size = UDim2.new(1, 0, 0, 40)
@@ -450,7 +437,7 @@ for _, mob in ipairs(mobsData) do
         FLabel.TextSize = 13
         FLabel.Font = Enum.Font.SourceSansSemibold
         FLabel.TextXAlignment = Enum.TextXAlignment.Left
-        FRow.Parent = MobPage
+        FLabel.Parent = FRow
 
         local FToggle = Instance.new("TextButton")
         FToggle.Size = UDim2.new(0, 40, 0, 24)
@@ -458,7 +445,8 @@ for _, mob in ipairs(mobsData) do
         FToggle.BackgroundColor3 = Color3.fromRGB(60, 60, 65)
         FToggle.Text = ""
         FToggle.Parent = FRow
-local FToggleCorner = Instance.new("UICorner")
+
+        local FToggleCorner = Instance.new("UICorner")
         FToggleCorner.CornerRadius = UDim.new(1, 0)
         FToggleCorner.Parent = FToggle
 
@@ -470,25 +458,19 @@ local FToggleCorner = Instance.new("UICorner")
         end)
     end
 
-    -- Настройка приоритета (от 1 до 6, где 6 - первый, 1 - последний)
     createSelectorRow(MobPage, "Priority (1-6)", {"1", "2", "3", "4", "5", "6"}, 6, function(val)
         Settings[mob.Name .. "_Priority"] = tonumber(val)
     end)
 end
 
--- Включаем первую вкладку мобов по умолчанию
 mobPages["Ladybug"].Visible = true
 
-
--- ==========================================================
--- 3. НАПОЛНЕНИЕ ВКЛАДКИ KILL BOSS (С подвкладками и Kill-переключателем)
--- ==========================================================
 local bossesData = {"King Beetle", "Mondo Chick", "Tunnel Bear", "Snail"}
 
 local BossSubTabsBar = Instance.new("ScrollingFrame")
 BossSubTabsBar.Size = UDim2.new(1, 0, 0, 30)
 BossSubTabsBar.BackgroundTransparency = 1
-BossSubTabsBar.CanvasSize = UDim2.new(0, 350, 0, 0)
+BossSubTabsBar.CanvasSize = UDim2.new(0, 400, 0, 0)
 BossSubTabsBar.ScrollBarThickness = 0
 BossSubTabsBar.Parent = pageKillBoss
 
@@ -540,7 +522,6 @@ for _, bossName in ipairs(bossData) do
         BossPage.Visible = true
     end)
 
-    -- Переключатель Kill для босса
     local KillRow = Instance.new("Frame")
     KillRow.Size = UDim2.new(1, 0, 0, 40)
     KillRow.BackgroundColor3 = currentTheme.Secondary
@@ -568,7 +549,8 @@ for _, bossName in ipairs(bossData) do
     KToggle.BackgroundColor3 = Color3.fromRGB(60, 60, 65)
     KToggle.Text = ""
     KToggle.Parent = KillRow
-local KToggleCorner = Instance.new("UICorner")
+
+    local KToggleCorner = Instance.new("UICorner")
     KToggleCorner.CornerRadius = UDim.new(1, 0)
     KToggleCorner.Parent = KToggle
 
@@ -582,10 +564,6 @@ end
 
 bossPages["King Beetle"].Visible = true
 
-
--- ==========================================================
--- 4. НАПОЛНЕНИЕ ВКЛАДКИ SETTINGS (FPS, Light/Dark/Lime Theme, Black Screen, Webhook)
--- ==========================================================
 createSelectorRow(pageSettings, "FPS", {"30 FPS", "60 FPS", "120 FPS", "Unlimited"}, 2, function(val)
     Settings.FPS = val
 end)
@@ -679,12 +657,9 @@ TextBox.FocusLost:Connect(function()
     Settings.Webhook = TextBox.Text
 end)
 
--- Открытие/скрытие интерфейса по клику на плавающую иконку
 local isOpen = false
-IconBtn.InputBegan:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-        isOpen = not isOpen
-        MainFrame.Visible = isOpen
-        IconBtn.Visible = not isOpen
-    end
+IconBtn.MouseButton1Click:Connect(function()
+    isOpen = not isOpen
+    MainFrame.Visible = isOpen
 end)
+
