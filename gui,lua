@@ -1,0 +1,52 @@
+-- gui.lua
+local Settings = loadstring(readfile("settings.lua"))()
+
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Name = "DeathNoteVGui"
+ScreenGui.Parent = game.CoreGui
+
+-- Главный контейнер (свернутый по умолчанию)
+local MainFrame = Instance.new("Frame")
+MainFrame.Size = UDim2.new(0, 50, 0, 50)
+MainFrame.Position = UDim2.new(1, -60, 0, 10)
+MainFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+MainFrame.BorderSizePixel = 0
+MainFrame.Parent = ScreenGui
+
+local UICorner = Instance.new("UICorner")
+UICorner.CornerRadius = UDim.new(0, 12)
+UICorner.Parent = MainFrame
+
+-- Буква V в стиле Death Note
+local TitleLabel = Instance.new("TextLabel")
+TitleLabel.Size = UDim2.new(1, 0, 1, 0)
+TitleLabel.BackgroundTransparency = 1
+TitleLabel.Text = "V"
+TitleLabel.TextColor3 = Color3.fromRGB(240, 240, 240)
+TitleLabel.TextSize = 24
+TitleLabel.Font = Enum.Font.SourceSansBold
+TitleLabel.Parent = MainFrame
+
+-- Контейнер для функций (скрыт изначально)
+local FunctionsContainer = Instance.new("ScrollingFrame")
+FunctionsContainer.Size = UDim2.new(0, 220, 0, 200)
+FunctionsContainer.Position = UDim2.new(0, 0, 0, 60)
+FunctionsContainer.BackgroundTransparency = 1
+FunctionsContainer.Visible = false
+FunctionsContainer.Parent = MainFrame
+
+local isOpen = false
+
+-- Анимация и переключение при нажатии на V
+MainFrame.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+        isOpen = not isOpen
+        if isOpen then
+            MainFrame:TweenSize(UDim2.new(0, 220, 0, 270), Enum.EasingDirection.Out, Enum.EasingStyle.Quad, 0.2, true)
+            FunctionsContainer.Visible = true
+        else
+            MainFrame:TweenSize(UDim2.new(0, 50, 0, 50), Enum.EasingDirection.Out, Enum.EasingStyle.Quad, 0.2, true)
+            FunctionsContainer.Visible = false
+        end
+    end
+end)
