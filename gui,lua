@@ -45,7 +45,7 @@ ScreenGui.Parent = game:GetService("CoreGui")
 
 local MainFrame = Instance.new("Frame")
 MainFrame.Size = UDim2.new(0, 50, 0, 50)
-MainFrame.Position = UDim2.new(1, -60, 0, 10)
+MainFrame.Position = UDim2.new(1, -70, 0, 150) -- Позиция кнопки справа
 MainFrame.BackgroundColor3 = currentTheme.Background
 MainFrame.BorderSizePixel = 0
 MainFrame.ClipsDescendants = true
@@ -192,16 +192,28 @@ createToggle("Kill Boss", false, function(state)
     end
 end)
 
--- Анимация открытия/закрытия интерфейса по клику на картинку
+-- Анимация открытия по центру экрана
 local isOpen = false
 MainFrame.InputBegan:Connect(function(input)
     if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
         isOpen = not isOpen
         if isOpen then
-            MainFrame:TweenSize(UDim2.new(0, 240, 0, 320), Enum.EasingDirection.Out, Enum.EasingStyle.Quad, 0.2, true)
+            MainFrame:TweenSizeAndPosition(
+                UDim2.new(0, 240, 0, 320),
+                UDim2.new(0.5, -120, 0.5, -160), -- Центр экрана
+                Enum.EasingDirection.Out, 
+                Enum.EasingStyle.Quad, 
+                0.3, true
+            )
             FunctionsContainer.Visible = true
         else
-            MainFrame:TweenSize(UDim2.new(0, 50, 0, 50), Enum.EasingDirection.Out, Enum.EasingStyle.Quad, 0.2, true)
+            MainFrame:TweenSizeAndPosition(
+                UDim2.new(0, 50, 0, 50),
+                UDim2.new(1, -70, 0, 150), -- Возврат на исходное место
+                Enum.EasingDirection.Out, 
+                Enum.EasingStyle.Quad, 
+                0.3, true
+            )
             FunctionsContainer.Visible = false
         end
     end
