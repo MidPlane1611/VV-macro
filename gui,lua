@@ -5,12 +5,14 @@ end)
 
 if not success or not Settings then
     Settings = { 
-        Theme = "dark", 
-        ShowFPS = true, 
+        Theme = "Dark", 
+        FPS = 60, 
+        BlackScreen = false,
+        Webhook = "",
         SprinklerType = "Diamond Sprinkler",
-        SelectedField = "Pepper Patch",
+        SelectedField = "Pepper (35 bee)",
         FarmType = "Random",
-        ConvertAt = 100
+        ConvertMode = "At 100% Bag"
     }
 end
 
@@ -20,8 +22,7 @@ local currentTheme = {
     Secondary = Color3.fromRGB(35, 35, 39),
     Text = Color3.fromRGB(240, 240, 245),
     SubText = Color3.fromRGB(160, 160, 170),
-    Accent = Color3.fromRGB(59, 130, 246),
-    SubTabInActive = Color3.fromRGB(45, 45, 50)
+    Accent = Color3.fromRGB(59, 130, 246)
 }
 
 -- Главный контейнер GUI
@@ -85,14 +86,14 @@ local MainTabsContainer = Instance.new("ScrollingFrame")
 MainTabsContainer.Size = UDim2.new(1, -60, 1, 0)
 MainTabsContainer.Position = UDim2.new(0, 15, 0, 0)
 MainTabsContainer.BackgroundTransparency = 1
-MainTabsContainer.CanvasSize = UDim2.new(0, 450, 0, 0)
+MainTabsContainer.CanvasSize = UDim2.new(0, 400, 0, 0)
 MainTabsContainer.ScrollBarThickness = 0
 MainTabsContainer.Parent = TopBar
 
 local MainTabsLayout = Instance.new("UIListLayout")
 MainTabsLayout.FillDirection = Enum.FillDirection.Horizontal
 MainTabsLayout.SortOrder = Enum.SortOrder.LayoutOrder
-MainTabsLayout.Padding = UDim.new(0, 18)
+MainTabsLayout.Padding = UDim.new(0, 20)
 MainTabsLayout.Parent = MainTabsContainer
 
 -- Кнопка закрытия/сворачивания
@@ -118,11 +119,20 @@ ContentArea.BackgroundTransparency = 1
 ContentArea.Parent = MainFrame
 local mainPages = {}
 local function createMainPage(name)
-    local page = Instance.new("Frame")
-    page.Size = UDim2.new(1, 0, 1, 0)
+    local page = Instance.new("ScrollingFrame")
+    page.Size = UDim2.new(1, -20, 1, -20)
+    page.Position = UDim2.new(0, 10, 0, 10)
     page.BackgroundTransparency = 1
+    page.CanvasSize = UDim2.new(0, 0, 0, 350)
+    page.ScrollBarThickness = 3
     page.Visible = false
     page.Parent = ContentArea
+
+    local layout = Instance.new("UIListLayout")
+    layout.SortOrder = Enum.SortOrder.LayoutOrder
+    layout.Padding = UDim.new(0, 8)
+    layout.Parent = page
+
     mainPages[name] = page
     return page
 end
@@ -154,30 +164,17 @@ local function createMainTabButton(name, width)
     end)
 end
 
-createMainTabButton("Gather", 65)
-createMainTabButton("Kill Mobs", 75)
-createMainTabButton("Kill Boss", 70)
-createMainTabButton("Settings", 70)
+createMainTabButton("Gather", 55)
+createMainTabButton("Kill Mobs", 70)
+createMainTabButton("Kill Boss", 65)
+createMainTabButton("Settings", 60)
 
 -- ==========================================================
--- НАПОЛНЕНИЕ ВКЛАДКИ GATHER
+-- 1. НАПОЛНЕНИЕ ВКЛАДКИ GATHER
 -- ==========================================================
-local GatherScroll = Instance.new("ScrollingFrame")
-GatherScroll.Size = UDim2.new(1, -20, 1, -20)
-GatherScroll.Position = UDim2.new(0, 10, 0, 10)
-GatherScroll.BackgroundTransparency = 1
-GatherScroll.CanvasSize = UDim2.new(0, 0, 0, 300)
-GatherScroll.ScrollBarThickness = 3
-GatherScroll.Parent = pageGather
-
-local GatherLayout = Instance.new("UIListLayout")
-GatherLayout.SortOrder = Enum.SortOrder.LayoutOrder
-GatherLayout.Padding = UDim.new(0, 8)
-GatherLayout.Parent = GatherScroll
-
 local function createSelectorRow(parent, labelName, optionsList, defaultIdx, callback)
     local Row = Instance.new("Frame")
-    Row.Size = UDim2.new(1, 0, 0, 42)
+    Row.Size = UDim2.new(1, 0, 0, 40)
     Row.BackgroundColor3 = currentTheme.Secondary
     Row.BorderSizePixel = 0
     Row.Parent = parent
@@ -199,8 +196,8 @@ local function createSelectorRow(parent, labelName, optionsList, defaultIdx, cal
 
     local currentIndex = defaultIdx
     local Btn = Instance.new("TextButton")
-    Btn.Size = UDim2.new(0, 150, 0, 28)
-    Btn.Position = UDim2.new(1, -160, 0.5, -14)
+    Btn.Size = UDim2.new(0, 150, 0, 26)
+    Btn.Position = UDim2.new(1, -160, 0.5, -13)
     Btn.BackgroundColor3 = Color3.fromRGB(50, 50, 55)
     Btn.Text = optionsList[currentIndex]
     Btn.TextColor3 = currentTheme.Text
@@ -219,58 +216,383 @@ local function createSelectorRow(parent, labelName, optionsList, defaultIdx, cal
     end)
 end
 
--- 1. Выбор поля для фарма
-local fields = {"Pepper Patch", "Coconut Field", "Pineapple Patch", "Stump Field", "Mountain Top", "Spider Field"}
-createSelectorRow(GatherScroll, "Select Field", fields, 1, function(selected)
-    Settings.SelectedField = selected
+local fieldsList = {
+    "Dandelion (1 bee)", "Mushroom (1 bee)", "Sunflower (1 bee)", "Blue flower (1 bee)", "Clover (1 bee)",
+    "Spider (5 bee)", "Strawberry (5 bee)", "Bamboo (5 bee)", "Pineapple (10 bee)", "Stump (10 bee)",
+    "Cactus (15 bee)", "Pumpkin (15 bee)", "Pine tree (15 bee)", "Rose (15 bee)", "Mountain top (25 bee)",
+    "Coconut (35 bee)", "Pepper (35 bee)"
+}
+
+local function createRayfieldDropdown(parent, labelName, items, defaultVal, callback)
+    local Row = Instance.new("Frame")
+    Row.Size = UDim2.new(1, 0, 0, 40)
+    Row.BackgroundColor3 = currentTheme.Secondary
+    Row.BorderSizePixel = 0
+    Row.ZIndex = 2
+    Row.Parent = parent
+
+    local Corner = Instance.new("UICorner")
+    Corner.CornerRadius = UDim.new(0, 6)
+    Corner.Parent = Row
+local Label = Instance.new("TextLabel")
+    Label.Size = UDim2.new(0, 160, 1, 0)
+    Label.Position = UDim2.new(0, 14, 0, 0)
+    Label.BackgroundTransparency = 1
+    Label.Text = labelName
+    Label.TextColor3 = currentTheme.Text
+    Label.TextSize = 13
+    Label.Font = Enum.Font.SourceSansSemibold
+    Label.TextXAlignment = Enum.TextXAlignment.Left
+    Label.ZIndex = 2
+    Label.Parent = Row
+
+    local MainBtn = Instance.new("TextButton")
+    MainBtn.Size = UDim2.new(0, 180, 0, 26)
+    MainBtn.Position = UDim2.new(1, -190, 0.5, -13)
+    MainBtn.BackgroundColor3 = Color3.fromRGB(50, 50, 55)
+    MainBtn.Text = defaultVal
+    MainBtn.TextColor3 = currentTheme.Text
+    MainBtn.TextSize = 12
+    MainBtn.Font = Enum.Font.SourceSansBold
+    MainBtn.ZIndex = 2
+    MainBtn.Parent = Row
+
+    local BtnCorner = Instance.new("UICorner")
+    BtnCorner.CornerRadius = UDim.new(0, 6)
+    BtnCorner.Parent = MainBtn
+
+    local DropList = Instance.new("ScrollingFrame")
+    DropList.Size = UDim2.new(0, 180, 0, 140)
+    DropList.Position = UDim2.new(1, -190, 1, 4)
+    DropList.BackgroundColor3 = Color3.fromRGB(30, 30, 35)
+    DropList.BorderSizePixel = 0
+    DropList.CanvasSize = UDim2.new(0, 0, 0, #items * 30)
+    DropList.ScrollBarThickness = 4
+    DropList.Visible = false
+    DropList.ZIndex = 10
+    DropList.Parent = Row
+
+    local DropCorner = Instance.new("UICorner")
+    DropCorner.CornerRadius = UDim.new(0, 6)
+    DropCorner.Parent = DropList
+
+    local DropLayout = Instance.new("UIListLayout")
+    DropLayout.SortOrder = Enum.SortOrder.LayoutOrder
+    DropLayout.Parent = DropList
+
+    for _, itemText in ipairs(items) do
+        local OptBtn = Instance.new("TextButton")
+        OptBtn.Size = UDim2.new(1, 0, 0, 30)
+        OptBtn.BackgroundTransparency = 1
+        OptBtn.Text = itemText
+        OptBtn.TextColor3 = currentTheme.SubText
+        OptBtn.TextSize = 12
+        OptBtn.Font = Enum.Font.SourceSans
+        OptBtn.ZIndex = 10
+        OptBtn.Parent = DropList
+
+        OptBtn.MouseButton1Click:Connect(function()
+            MainBtn.Text = itemText
+            DropList.Visible = false
+            callback(itemText)
+        end)
+    end
+
+    MainBtn.MouseButton1Click:Connect(function()
+        DropList.Visible = not DropList.Visible
+    end)
+end
+
+createRayfieldDropdown(pageGather, "Select Field", fieldsList, Settings.SelectedField, function(val)
+    Settings.SelectedField = val
 end)
 
--- 2. Тип фарма (пока только Random, остальные добавим позже)
-local farmTypes = {"Random"}
-createSelectorRow(GatherScroll, "Farm Type", farmTypes, 1, function(selected)
-    Settings.FarmType = selected
+createSelectorRow(pageGather, "Farm Type", {"Random"}, 1, function(val)
+    Settings.FarmType = val
 end)
 
--- 3. Выбор типа спринклера (включая Diamond Sprinkler)
-local sprinklers = {"Basic Sprinkler", "Silver Sprinkler", "Golden Sprinkler", "Diamond Sprinkler", "Supreme Sprinkler"}
-createSelectorRow(GatherScroll, "Sprinkler Type", sprinklers, 4, function(selected)
-    Settings.SprinklerType = selected
+createSelectorRow(pageGather, "Sprinkler Type", {"Basic Sprinkler", "Silver Sprinkler", "Golden Sprinkler", "Diamond Sprinkler", "Supreme Sprinkler"}, 4, function(val)
+    Settings.SprinklerType = val
 end)
--- 4. Переработка пыльцы
-local convertModes = {"At 100% Bag", "At 80% Bag", "Every 5 Minutes", "Manual Only"}
-createSelectorRow(GatherScroll, "Pollen Conversion", convertModes, 1, function(selected)
-    Settings.ConvertMode = selected
+
+createSelectorRow(pageGather, "Pollen Conversion", {"At 100% Bag", "At 80% Bag", "Every 5 Minutes", "Manual Only"}, 1, function(val)
+    Settings.ConvertMode = val
 end)
 
 
 -- ==========================================================
--- НАПОЛНЕНИЕ ВКЛАДОК KILL MOBS И KILL BOSS
+-- 2. НАПОЛНЕНИЕ ВКЛАДКИ KILL MOBS (С подвкладками, Kill-переключателем и приоритетом 1-6)
 -- ==========================================================
-local MobsScroll = Instance.new("ScrollingFrame")
-MobsScroll.Size = UDim2.new(1, -20, 1, -20)
-MobsScroll.Position = UDim2.new(0, 10, 0, 10)
-MobsScroll.BackgroundTransparency = 1
-MobsScroll.CanvasSize = UDim2.new(0, 0, 0, 200)
-MobsScroll.ScrollBarThickness = 3
-MobsScroll.Parent = pageKillMobs
+local mobsData = {
+    {Name = "Ladybug", Fields = {"Mushroom", "Strawberry", "Clover"}},
+    {Name = "Rhino Beetle", Fields = {"Clover", "Blue Flower", "Bamboo", "Pineapple"}},
+    {Name = "Spider", Fields = {"Spider"}},
+    {Name = "Mantis", Fields = {"Pineapple", "Pine Tree"}},
+    {Name = "Scorpion", Fields = {"Rose"}},
+    {Name = "Werewolf", Fields = {"Cactus"}}
+}
 
-local MobsLayout = Instance.new("UIListLayout")
-MobsLayout.SortOrder = Enum.SortOrder.LayoutOrder
-MobsLayout.Padding = UDim.new(0, 8)
-MobsLayout.Parent = MobsScroll
+-- Подпанель вкладок мобов
+local MobsSubTabsBar = Instance.new("ScrollingFrame")
+MobsSubTabsBar.Size = UDim2.new(1, 0, 0, 30)
+MobsSubTabsBar.BackgroundTransparency = 1
+MobsSubTabsBar.CanvasSize = UDim2.new(0, 400, 0, 0)
+MobsSubTabsBar.ScrollBarThickness = 0
+MobsSubTabsBar.Parent = pageKillMobs
 
-local BossScroll = Instance.new("ScrollingFrame")
-BossScroll.Size = UDim2.new(1, -20, 1, -20)
-BossScroll.Position = UDim2.new(0, 10, 0, 10)
-BossScroll.BackgroundTransparency = 1
-BossScroll.CanvasSize = UDim2.new(0, 0, 0, 200)
-BossScroll.ScrollBarThickness = 3
-BossScroll.Parent = pageKillBoss
+local MobsSubLayout = Instance.new("UIListLayout")
+MobsSubLayout.FillDirection = Enum.FillDirection.Horizontal
+MobsSubLayout.SortOrder = Enum.SortOrder.LayoutOrder
+MobsSubLayout.Padding = UDim.new(0, 6)
+MobsSubLayout.Parent = MobsSubTabsBar
+local MobsContentContainer = Instance.new("Frame")
+MobsContentContainer.Size = UDim2.new(1, 0, 1, -38)
+MobsContentContainer.BackgroundTransparency = 1
+MobsContentContainer.Parent = pageKillMobs
 
-local BossLayout = Instance.new("UIListLayout")
-BossLayout.SortOrder = Enum.SortOrder.LayoutOrder
-BossLayout.Padding = UDim.new(0, 8)
-BossLayout.Parent = BossScroll
+local mobPages = {}
+
+for _, mob in ipairs(mobsData) do
+    -- Кнопка подвкладки
+    local SubBtn = Instance.new("TextButton")
+    SubBtn.Size = UDim2.new(0, 85, 1, 0)
+    SubBtn.BackgroundColor3 = currentTheme.Secondary
+    SubBtn.Text = mob.Name
+    SubBtn.TextColor3 = currentTheme.Text
+    SubBtn.TextSize = 11
+    SubBtn.Font = Enum.Font.SourceSansSemibold
+    SubBtn.Parent = MobsSubTabsBar
+
+    local SubCorner = Instance.new("UICorner")
+    SubCorner.CornerRadius = UDim.new(0, 6)
+    SubCorner.Parent = SubBtn
+
+    -- Контейнер страницы моба
+    local MobPage = Instance.new("ScrollingFrame")
+    MobPage.Size = UDim2.new(1, 0, 1, 0)
+    MobPage.Position = UDim2.new(0, 0, 0, 8)
+    MobPage.BackgroundTransparency = 1
+    MobPage.CanvasSize = UDim2.new(0, 0, 0, 250)
+    MobPage.ScrollBarThickness = 3
+    MobPage.Visible = false
+    MobPage.Parent = MobsContentContainer
+
+    local MobPageLayout = Instance.new("UIListLayout")
+    MobPageLayout.SortOrder = Enum.SortOrder.LayoutOrder
+    MobPageLayout.Padding = UDim.new(0, 8)
+    MobPageLayout.Parent = MobPage
+
+    mobPages[mob.Name] = MobPage
+
+    SubBtn.MouseButton1Click:Connect(function()
+        for _, p in pairs(mobPages) do p.Visible = false end
+        MobPage.Visible = true
+    end)
+
+    -- Переключатель Kill для моба
+    local KillRow = Instance.new("Frame")
+    KillRow.Size = UDim2.new(1, 0, 0, 40)
+    KillRow.BackgroundColor3 = currentTheme.Secondary
+    KillRow.BorderSizePixel = 0
+    KillRow.Parent = MobPage
+
+    local KCorner = Instance.new("UICorner")
+    KCorner.CornerRadius = UDim.new(0, 6)
+    KCorner.Parent = KillRow
+
+    local KLabel = Instance.new("TextLabel")
+    KLabel.Size = UDim2.new(1, -60, 1, 0)
+    KLabel.Position = UDim2.new(0, 14, 0, 0)
+    KLabel.BackgroundTransparency = 1
+    KLabel.Text = "Kill " .. mob.Name
+    KLabel.TextColor3 = currentTheme.Text
+    KLabel.TextSize = 13
+    KLabel.Font = Enum.Font.SourceSansSemibold
+    KLabel.TextXAlignment = Enum.TextXAlignment.Left
+    KLabel.Parent = KillRow
+
+    local KToggle = Instance.new("TextButton")
+    KToggle.Size = UDim2.new(0, 40, 0, 24)
+    KToggle.Position = UDim2.new(1, -50, 0.5, -12)
+    KToggle.BackgroundColor3 = Color3.fromRGB(60, 60, 65)
+    KToggle.Text = ""
+    KToggle.Parent = KillRow
+
+    local KToggleCorner = Instance.new("UICorner")
+    KToggleCorner.CornerRadius = UDim.new(1, 0)
+    KToggleCorner.Parent = KToggle
+
+    local kState = false
+    KToggle.MouseButton1Click:Connect(function()
+        kState = not kState
+        KToggle.BackgroundColor3 = kState and currentTheme.Accent or Color3.fromRGB(60, 60, 65)
+        Settings["Kill" .. mob.Name] = kState
+    end)
+
+    -- Переключатели полей для данного моба
+    for _, fieldName in ipairs(mob.Fields) do
+        local FRow = Instance.new("Frame")
+        FRow.Size = UDim2.new(1, 0, 0, 40)
+        FRow.BackgroundColor3 = currentTheme.Secondary
+        FRow.BorderSizePixel = 0
+        FRow.Parent = MobPage
+
+        local FCorner = Instance.new("UICorner")
+        FCorner.CornerRadius = UDim.new(0, 6)
+        FCorner.Parent = FRow
+
+        local FLabel = Instance.new("TextLabel")
+        FLabel.Size = UDim2.new(1, -60, 1, 0)
+        FLabel.Position = UDim2.new(0, 14, 0, 0)
+        FLabel.BackgroundTransparency = 1
+        FLabel.Text = fieldName
+        FLabel.TextColor3 = currentTheme.Text
+        FLabel.TextSize = 13
+        FLabel.Font = Enum.Font.SourceSansSemibold
+        FLabel.TextXAlignment = Enum.TextXAlignment.Left
+        FRow.Parent = MobPage
+
+        local FToggle = Instance.new("TextButton")
+        FToggle.Size = UDim2.new(0, 40, 0, 24)
+        FToggle.Position = UDim2.new(1, -50, 0.5, -12)
+        FToggle.BackgroundColor3 = Color3.fromRGB(60, 60, 65)
+        FToggle.Text = ""
+        FToggle.Parent = FRow
+local FToggleCorner = Instance.new("UICorner")
+        FToggleCorner.CornerRadius = UDim.new(1, 0)
+        FToggleCorner.Parent = FToggle
+
+        local fState = false
+        FToggle.MouseButton1Click:Connect(function()
+            fState = not fState
+            FToggle.BackgroundColor3 = fState and currentTheme.Accent or Color3.fromRGB(60, 60, 65)
+            Settings[mob.Name .. "_" .. fieldName] = fState
+        end)
+    end
+
+    -- Настройка приоритета (от 1 до 6, где 6 - первый, 1 - последний)
+    createSelectorRow(MobPage, "Priority (1-6)", {"1", "2", "3", "4", "5", "6"}, 6, function(val)
+        Settings[mob.Name .. "_Priority"] = tonumber(val)
+    end)
+end
+
+-- Включаем первую вкладку мобов по умолчанию
+mobPages["Ladybug"].Visible = true
+
+
+-- ==========================================================
+-- 3. НАПОЛНЕНИЕ ВКЛАДКИ KILL BOSS (С подвкладками и Kill-переключателем)
+-- ==========================================================
+local bossesData = {"King Beetle", "Mondo Chick", "Tunnel Bear", "Snail"}
+
+local BossSubTabsBar = Instance.new("ScrollingFrame")
+BossSubTabsBar.Size = UDim2.new(1, 0, 0, 30)
+BossSubTabsBar.BackgroundTransparency = 1
+BossSubTabsBar.CanvasSize = UDim2.new(0, 350, 0, 0)
+BossSubTabsBar.ScrollBarThickness = 0
+BossSubTabsBar.Parent = pageKillBoss
+
+local BossSubLayout = Instance.new("UIListLayout")
+BossSubLayout.FillDirection = Enum.FillDirection.Horizontal
+BossSubLayout.SortOrder = Enum.SortOrder.LayoutOrder
+BossSubLayout.Padding = UDim.new(0, 6)
+BossSubLayout.Parent = BossSubTabsBar
+
+local BossContentContainer = Instance.new("Frame")
+BossContentContainer.Size = UDim2.new(1, 0, 1, -38)
+BossContentContainer.BackgroundTransparency = 1
+BossContentContainer.Parent = pageKillBoss
+
+local bossPages = {}
+
+for _, bossName in ipairs(bossData) do
+    local SubBtn = Instance.new("TextButton")
+    SubBtn.Size = UDim2.new(0, 95, 1, 0)
+    SubBtn.BackgroundColor3 = currentTheme.Secondary
+    SubBtn.Text = bossName
+    SubBtn.TextColor3 = currentTheme.Text
+    SubBtn.TextSize = 11
+    SubBtn.Font = Enum.Font.SourceSansSemibold
+    SubBtn.Parent = BossSubTabsBar
+
+    local SubCorner = Instance.new("UICorner")
+    SubCorner.CornerRadius = UDim.new(0, 6)
+    SubCorner.Parent = SubBtn
+
+    local BossPage = Instance.new("ScrollingFrame")
+    BossPage.Size = UDim2.new(1, 0, 1, 0)
+    BossPage.Position = UDim2.new(0, 0, 0, 8)
+    BossPage.BackgroundTransparency = 1
+    BossPage.CanvasSize = UDim2.new(0, 0, 0, 100)
+    BossPage.ScrollBarThickness = 3
+    BossPage.Visible = false
+    BossPage.Parent = BossContentContainer
+
+    local BossPageLayout = Instance.new("UIListLayout")
+    BossPageLayout.SortOrder = Enum.SortOrder.LayoutOrder
+    BossPageLayout.Padding = UDim.new(0, 8)
+    BossPageLayout.Parent = BossPage
+
+    bossPages[bossName] = BossPage
+
+    SubBtn.MouseButton1Click:Connect(function()
+        for _, p in pairs(bossPages) do p.Visible = false end
+        BossPage.Visible = true
+    end)
+
+    -- Переключатель Kill для босса
+    local KillRow = Instance.new("Frame")
+    KillRow.Size = UDim2.new(1, 0, 0, 40)
+    KillRow.BackgroundColor3 = currentTheme.Secondary
+    KillRow.BorderSizePixel = 0
+    KillRow.Parent = BossPage
+
+    local KCorner = Instance.new("UICorner")
+    KCorner.CornerRadius = UDim.new(0, 6)
+    KCorner.Parent = KillRow
+
+    local KLabel = Instance.new("TextLabel")
+    KLabel.Size = UDim2.new(1, -60, 1, 0)
+    KLabel.Position = UDim2.new(0, 14, 0, 0)
+    KLabel.BackgroundTransparency = 1
+    KLabel.Text = "Kill " .. bossName
+    KLabel.TextColor3 = currentTheme.Text
+    KLabel.TextSize = 13
+    KLabel.Font = Enum.Font.SourceSansSemibold
+    KLabel.TextXAlignment = Enum.TextXAlignment.Left
+    KLabel.Parent = KillRow
+
+    local KToggle = Instance.new("TextButton")
+    KToggle.Size = UDim2.new(0, 40, 0, 24)
+    KToggle.Position = UDim2.new(1, -50, 0.5, -12)
+    KToggle.BackgroundColor3 = Color3.fromRGB(60, 60, 65)
+    KToggle.Text = ""
+    KToggle.Parent = KillRow
+local KToggleCorner = Instance.new("UICorner")
+    KToggleCorner.CornerRadius = UDim.new(1, 0)
+    KToggleCorner.Parent = KToggle
+
+    local kState = false
+    KToggle.MouseButton1Click:Connect(function()
+        kState = not kState
+        KToggle.BackgroundColor3 = kState and currentTheme.Accent or Color3.fromRGB(60, 60, 65)
+        Settings["Kill" .. bossName] = kState
+    end)
+end
+
+bossPages["King Beetle"].Visible = true
+
+
+-- ==========================================================
+-- 4. НАПОЛНЕНИЕ ВКЛАДКИ SETTINGS (FPS, Light/Dark/Lime Theme, Black Screen, Webhook)
+-- ==========================================================
+createSelectorRow(pageSettings, "FPS", {"30 FPS", "60 FPS", "120 FPS", "Unlimited"}, 2, function(val)
+    Settings.FPS = val
+end)
+
+createRayfieldDropdown(pageSettings, "Theme", {"Dark", "Light", "Lime"}, "Dark", function(val)
+    Settings.Theme = val
+end)
 
 local function createToggleRow(parent, name, defaultState, callback)
     local Row = Instance.new("Frame")
@@ -313,139 +635,49 @@ local function createToggleRow(parent, name, defaultState, callback)
     end)
 end
 
-createToggleRow(MobsScroll, "Auto Farm Mobs", false, function(state) end)
-createToggleRow(BossScroll, "Auto Farm Boss", false, function(state) end)
+createToggleRow(pageSettings, "Black Screen", false, function(state)
+    Settings.BlackScreen = state
+end)
 
+local WebhookRow = Instance.new("Frame")
+WebhookRow.Size = UDim2.new(1, 0, 0, 40)
+WebhookRow.BackgroundColor3 = currentTheme.Secondary
+WebhookRow.BorderSizePixel = 0
+WebhookRow.Parent = pageSettings
 
--- ==========================================================
--- НАСТРОЙКИ (SETTINGS) С ПОДВКЛАДКАМИ
--- ==========================================================
-local SubTabsBar = Instance.new("ScrollingFrame")
-SubTabsBar.Size = UDim2.new(1, -20, 0, 35)
-SubTabsBar.Position = UDim2.new(0, 15, 0, 12)
-SubTabsBar.BackgroundTransparency = 1
-SubTabsBar.CanvasSize = UDim2.new(0, 350, 0, 0)
-SubTabsBar.ScrollBarThickness = 0
-SubTabsBar.Parent = pageSettings
+local WHCorner = Instance.new("UICorner")
+WHCorner.CornerRadius = UDim.new(0, 6)
+WHCorner.Parent = WebhookRow
 
-local SubTabsLayout = Instance.new("UIListLayout")
-SubTabsLayout.FillDirection = Enum.FillDirection.Horizontal
-SubTabsLayout.SortOrder = Enum.SortOrder.LayoutOrder
-SubTabsLayout.Padding = UDim.new(0, 8)
-SubTabsLayout.Parent = SubTabsBar
+local WHLabel = Instance.new("TextLabel")
+WHLabel.Size = UDim2.new(0, 120, 1, 0)
+WHLabel.Position = UDim2.new(0, 14, 0, 0)
+WHLabel.BackgroundTransparency = 1
+WHLabel.Text = "Webhook"
+WHLabel.TextColor3 = currentTheme.Text
+WHLabel.TextSize = 13
+WHLabel.Font = Enum.Font.SourceSansSemibold
+WHLabel.TextXAlignment = Enum.TextXAlignment.Left
+WHLabel.Parent = WebhookRow
 
-local SubContentArea = Instance.new("Frame")
-SubContentArea.Size = UDim2.new(1, -30, 1, -60)
-SubContentArea.Position = UDim2.new(0, 15, 0, 55)
-SubContentArea.BackgroundTransparency = 1
-SubContentArea.Parent = pageSettings
-local subPages = {}
-local function createSubPage(name)
-    local sp = Instance.new("ScrollingFrame")
-    sp.Size = UDim2.new(1, 0, 1, 0)
-    sp.BackgroundTransparency = 1
-    sp.CanvasSize = UDim2.new(0, 0, 0, 200)
-    sp.ScrollBarThickness = 3
-    sp.Visible = false
-    sp.Parent = SubContentArea
+local TextBox = Instance.new("TextBox")
+TextBox.Size = UDim2.new(0, 150, 0, 26)
+TextBox.Position = UDim2.new(1, -160, 0.5, -13)
+TextBox.BackgroundColor3 = Color3.fromRGB(50, 50, 55)
+TextBox.PlaceholderText = "Enter Webhook..."
+TextBox.Text = Settings.Webhook
+TextBox.TextColor3 = currentTheme.Text
+TextBox.TextSize = 11
+TextBox.Font = Enum.Font.SourceSans
+TextBox.Parent = WebhookRow
 
-    local layout = Instance.new("UIListLayout")
-    layout.SortOrder = Enum.SortOrder.LayoutOrder
-    layout.Padding = UDim.new(0, 8)
-    layout.Parent = sp
+local BoxCorner = Instance.new("UICorner")
+BoxCorner.CornerRadius = UDim.new(0, 6)
+BoxCorner.Parent = TextBox
 
-    subPages[name] = sp
-    return sp
-end
-
-local subHotkeys = createSubPage("Hotkeys")
-local subCapture = createSubPage("Capture")
-local subMisc = createSubPage("Misc")
-
-local function switchSubPage(name)
-    for sName, sObj in pairs(subPages) do
-        sObj.Visible = (sName == name)
-    end
-end
-switchSubPage("Hotkeys")
-
-local function createSubTabButton(name)
-    local btn = Instance.new("TextButton")
-    btn.Size = UDim2.new(0, 85, 0, 28)
-    btn.BackgroundColor3 = currentTheme.SubTabInActive
-    btn.Text = name
-    btn.TextColor3 = currentTheme.Text
-    btn.TextSize = 12
-    btn.Font = Enum.Font.SourceSansSemibold
-    btn.Parent = SubTabsBar
-
-    local corner = Instance.new("UICorner")
-    corner.CornerRadius = UDim.new(0, 6)
-    corner.Parent = btn
-
-    btn.MouseButton1Click:Connect(function()
-        switchSubPage(name)
-    end)
-end
-
-createSubTabButton("Hotkeys")
-createSubTabButton("Capture")
-createSubTabButton("Misc")
-
-local function createHotkeyRow(parent, actionName, keyName)
-    local Row = Instance.new("Frame")
-    Row.Size = UDim2.new(1, 0, 0, 40)
-    Row.BackgroundColor3 = currentTheme.Secondary
-    Row.BorderSizePixel = 0
-    Row.Parent = parent
-
-    local Corner = Instance.new("UICorner")
-    Corner.CornerRadius = UDim.new(0, 6)
-    Corner.Parent = Row
-
-    local Label = Instance.new("TextLabel")
-    Label.Size = UDim2.new(1, -100, 1, 0)
-    Label.Position = UDim2.new(0, 14, 0, 0)
-    Label.BackgroundTransparency = 1
-    Label.Text = actionName
-    Label.TextColor3 = currentTheme.Text
-    Label.TextSize = 13
-    Label.Font = Enum.Font.SourceSansSemibold
-    Label.TextXAlignment = Enum.TextXAlignment.Left
-    Label.Parent = Row
-
-    local KeyBox = Instance.new("TextButton")
-    KeyBox.Size = UDim2.new(0, 36, 0, 24)
-    KeyBox.Position = UDim2.new(1, -85, 0.5, -12)
-    KeyBox.BackgroundColor3 = Color3.fromRGB(50, 50, 55)
-    KeyBox.Text = keyName
-    KeyBox.TextColor3 = currentTheme.Text
-    KeyBox.TextSize = 12
-    KeyBox.Font = Enum.Font.SourceSansBold
-    KeyBox.Parent = Row
-
-    local KeyCorner = Instance.new("UICorner")
-    KeyCorner.CornerRadius = UDim.new(0, 4)
-    KeyCorner.Parent = KeyBox
-
-    local CircleBtn = Instance.new("TextButton")
-    CircleBtn.Size = UDim2.new(0, 24, 0, 24)
-    CircleBtn.Position = UDim2.new(1, -40, 0.5, -12)
-    CircleBtn.BackgroundColor3 = Color3.fromRGB(50, 50, 55)
-    CircleBtn.Text = "O"
-    CircleBtn.TextColor3 = currentTheme.Text
-    CircleBtn.TextSize = 11
-    CircleBtn.Font = Enum.Font.SourceSansBold
-    CircleBtn.Parent = Row
-
-    local CircleCorner = Instance.new("UICorner")
-    CircleCorner.CornerRadius = UDim.new(1, 0)
-    CircleCorner.Parent = CircleBtn
-end
-
-createHotkeyRow(subHotkeys, "Start Macro", "F1")
-createHotkeyRow(subHotkeys, "Pause Macro", "F2")
-createHotkeyRow(subHotkeys, "Stop Macro", "F3")
+TextBox.FocusLost:Connect(function()
+    Settings.Webhook = TextBox.Text
+end)
 
 -- Открытие/скрытие интерфейса по клику на плавающую иконку
 local isOpen = false
