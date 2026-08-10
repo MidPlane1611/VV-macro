@@ -1,5 +1,17 @@
--- main.lua
-local Settings = loadstring(game:HttpGet("ссылка_на_raw_settings.lua"))()
-loadstring(game:HttpGet("ссылка_на_raw_gui.lua"))()
+-- Замени ссылки ниже на свои реальные Raw-ссылки с GitHub после загрузки файлов
+local settingsUrl = "ЗДЕСЬ_ССЫЛКА_НА_RAW_SETTINGS.LUA"
+local guiUrl = "ЗДЕСЬ_ССЫЛКА_НА_RAW_GUI.LUA"
 
-print("Скрипт успешно запущен!")
+local successSettings, Settings = pcall(function()
+    return loadstring(game:HttpGet(settingsUrl))()
+end)
+
+local successGui, Gui = pcall(function()
+    return loadstring(game:HttpGet(guiUrl))()
+end)
+
+if successSettings and successGui then
+    print("DeathNote V GUI: Всё успешно запущенно!")
+else
+    warn("DeathNote V GUI: Ошибка загрузки файлов.")
+end
