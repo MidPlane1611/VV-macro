@@ -1,52 +1,52 @@
--- [[ LOGIC MODULE ]]
--- Handles core macro tasks, priority queue, dispensers, and farming loop
+-- [[ ADVANCED LOGIC MODULE ]]
+-- Handles core macro tasks, priority queue, and state machine
 
 local LogicModule = {}
 
--- Главная очередь приоритетов (вызывается каждые 5 секунд из main.lua)
 function LogicModule:RunQueue()
     local settings = getgenv().MacroSettings
     if not settings or not settings.Running then return end
 
-    -- Шаг 1: Проверка и сбор с диспенсеров (Treat Dispenser, Royal Jelly Dispenser и т.д.)
+    -- Приоритет 1: Проверка диспенсеров и бустов
     self:CheckDispensers()
 
-    -- Шаг 2: Проверка бустов и полей
-    self:CheckBoosts()
-
-    -- Шаг 3: Основной фарм пыльцы
+    -- Приоритет 2: Фарм пыльцы в выбранном поле
     self:GatherPollen()
 end
 
--- Логика диспенсеров
 function LogicModule:CheckDispensers()
-    -- Здесь в будущем будет код взаимодействия с объектами на базе (Hive)
-    -- print("[Logic] Checking dispensers...")
+    local settings = getgenv().MacroSettings
+    -- Здесь логика таймеров диспенсеров (Treats, Royal Jelly, Honeystorm)
+    settings.CurrentState = "Checking dispensers & boosts..."
 end
 
--- Логика бустов
-function LogicModule:CheckBoosts()
-    -- Здесь в будущем будет код для использования предметов или активации полей
-    -- print("[Logic] Checking active boosts...")
-end
-
--- Логика фарма пыльцы
 function LogicModule:GatherPollen()
     local settings = getgenv().MacroSettings
     if not settings then return end
 
-    -- Симуляция процесса фарма для демонстрации работы системы
+    -- Проверяем, полон ли рюкзак
     if settings.PollenCurrent < settings.PollenMax then
-        settings.PollenCurrent = math.min(settings.PollenMax, settings.PollenCurrent + 65000)
+        -- Симуляция процесса сбора пыльцы в зависимости от выбранного поля
+        local addAmount = 75000
+        if settings.CurrentField == "Pine Tree Field" then
+            addAmount = 95000
+        elseif settings.CurrentField == "Coconut Field" then
+            addAmount = 120000
+        end
+
+        settings.PollenCurrent = math.min(settings.PollenMax, settings.PollenCurrent + addAmount)
         settings.BackpackFull = false
-        settings.CurrentState = "Gathering pollen in " .. tostring(settings.CurrentField)
+        settings.CurrentState = "Farming pollen in " .. tostring(settings.CurrentField)
     else
+        -- Рюкзак полон -> идем конвертировать к улью
         settings.BackpackFull = true
-        settings.CurrentState = "Backpack Full! Converting at Hive..."
+        settings.CurrentState = "Backpack Full! Converting honey at hive..."
         
-        -- Здесь будет триггер возврата к улью
-        -- task.wait(5) -- имитация конвертации
-        settings.PollenCurrent = 0 -- сброс после конвертации
+        -- Симуляция конвертации
+        task.wait(3)
+        settings.PollenCurrent = 0
+        settings.BackpackFull = false
+        settings.CurrentState = "Resuming farm..."
     end
 end
 
