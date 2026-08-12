@@ -223,7 +223,9 @@ local function startListeners()
     end)
 end
 
-local function findSpawnToken(hrpPos, radius)
+-- Функция поиска токена с его мгновенным удалением из памяти (чтобы не было спама телепортов)
+local function findAndRemoveToken(hrpPos, radius)
+    local nearestIndex = nil
     local nearestPos = nil
     local shortestDist = radius
     
@@ -233,12 +235,17 @@ local function findSpawnToken(hrpPos, radius)
         end
     end
     
-    for _, token in ipairs(NetworkTokens) do
+    for i, token in ipairs(NetworkTokens) do
         local dist = (Vector3.new(token.Pos.X, hrpPos.Y, token.Pos.Z) - hrpPos).Magnitude
         if dist < shortestDist then
             shortestDist = dist
             nearestPos = token.Pos
+            nearestIndex = i
         end
+    end
+    
+    if nearestIndex then
+        table.remove(NetworkTokens, nearestIndex)
     end
     
     return nearestPos
@@ -318,7 +325,7 @@ startButton.MouseButton1Click:Connect(function()
                     local hrp = char:FindFirstChild("HumanoidRootPart")
                     local basePos = FieldData[settings.CurrentField] or Vector3.new(0, 5, 0)
                     if hrp then
-                        hrp.CFrame = CFrame.new(basePos + Vector3.new(0, 5, 0))
+                        hrp.CFrame = CFrame.new(basePos + Vector3.new(0, 2, 0))
                     end
                     task.wait(1)
                 end
@@ -338,7 +345,7 @@ startButton.MouseButton1Click:Connect(function()
                             task.spawn(function()
                                 task.wait(5)
                                 local basePos = FieldData[settings.CurrentField] or Vector3.new(0, 5, 0)
-                                hrp.CFrame = CFrame.new(basePos + Vector3.new(0, 5, 0))
+                                hrp.CFrame = CFrame.new(basePos + Vector3.new(0, 2, 0))
                                 task.wait(0.5)
                                 
                                 settings.Farm = 1
@@ -353,36 +360,36 @@ startButton.MouseButton1Click:Connect(function()
                         local basePos = FieldData[settings.CurrentField] or Vector3.new(0, 5, 0)
                         
                         if (hrp.Position - basePos).Magnitude > 60 and settings.FarmType ~= "Instant Collector" then
-                            hrp.CFrame = CFrame.new(basePos + Vector3.new(0, 5, 0))
+                            hrp.CFrame = CFrame.new(basePos + Vector3.new(0, 2, 0))
                         end
                         
                         if humanoid then
                             if settings.FarmType == "Instant Collector" then
-                                local tokenPos = findSpawnToken(basePos, 32)
+                                local tokenPos = findAndRemoveToken(basePos, 32)
                                 if tokenPos then
-                                    hrp.CFrame = CFrame.new(tokenPos + Vector3.new(0, 3, 0))
+                                    hrp.CFrame = CFrame.new(tokenPos + Vector3.new(0, 2, 0))
                                     task.wait(0.06)
                                     
                                     local hasMore = true
-                                    while hasMore do
-                                        local nextToken = findSpawnToken(hrp.Position, 32)
+                                    while hasMore and settings.Running do
+                                        local nextToken = findAndRemoveToken(hrp.Position, 32)
                                         if nextToken then
-                                            hrp.CFrame = CFrame.new(nextToken + Vector3.new(0, 3, 0))
+                                            hrp.CFrame = CFrame.new(nextToken + Vector3.new(0, 2, 0))
                                             task.wait(0.06)
                                         else
                                             hasMore = false
                                         end
                                     end
                                     
-                                    hrp.CFrame = CFrame.new(basePos + Vector3.new(0, 5, 0))
+                                    hrp.CFrame = CFrame.new(basePos + Vector3.new(0, 2, 0))
                                 else
                                     if (hrp.Position - basePos).Magnitude > 5 then
-                                        hrp.CFrame = CFrame.new(basePos + Vector3.new(0, 5, 0))
+                                        hrp.CFrame = CFrame.new(basePos + Vector3.new(0, 2, 0))
                                     end
                                     task.wait(0.1)
                                 end
                             elseif settings.FarmType == "Token Collector" then
-                                local tokenPos = findSpawnToken(hrp.Position, 20)
+                                local tokenPos = findAndRemoveToken(hrp.Position, 20)
                                 if tokenPos then
                                     humanoid:MoveTo(tokenPos)
                                     humanoid.MoveToFinished:Wait()
@@ -408,7 +415,7 @@ startButton.MouseButton1Click:Connect(function()
                                 task.wait(4)
                             else
                                 local targetHive = HiveCoords[settings.HiveSlot] or HiveCoords[1]
-                                hrp.CFrame = CFrame.new(targetHive + Vector3.new(0, 3, 0))
+                                hrp.CFrame = CFrame.new(targetHive + Vector3.new(0, 2, 0))
                                 task.wait(1.5)
                                 
                                 pcall(function()
@@ -427,5 +434,6 @@ startButton.MouseButton1Click:Connect(function()
     else
         startButton.Text = "START MACRO"
         startButton.BackgroundColor3 = Color3.fromRGB(0, 170, 0)
+        NetworkTokens = {}
     end
 end)
