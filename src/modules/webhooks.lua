@@ -1,16 +1,20 @@
--- [[ WEBHOOK MODULE ]]
--- Handles Discord notifications and real-time status updates
+-- [[ ADVANCED WEBHOOK MODULE ]]
+-- Handles rich Discord embeds and real-time status updates
 
 local HttpService = game:GetService("HttpService")
 local WebhookModule = {}
 
--- Функция отправки обычного сообщения
 function WebhookModule:Send(content)
     local url = getgenv().MacroSettings and getgenv().MacroSettings.WebhookUrl
     if not url or url == "" then return end
     
     local data = {
-        ["content"] = content
+        ["embeds"] = {{
+            ["title"] = "🐝 Bee Swarm Macro Notification",
+            ["description"] = content,
+            ["color"] = 65280, -- Зеленый цвет
+            ["footer"] = {["text"] = "Bee Swarm Ultimate Macro v1.0"}
+        }}
     }
     
     pcall(function()
@@ -23,7 +27,6 @@ function WebhookModule:Send(content)
     end)
 end
 
--- Функция динамического обновления статуса (информация о фарме и рюкзаке)
 function WebhookModule:UpdateStatus()
     local url = getgenv().MacroSettings and getgenv().MacroSettings.WebhookUrl
     if not url or url == "" then return end
@@ -31,16 +34,17 @@ function WebhookModule:UpdateStatus()
     local settings = getgenv().MacroSettings
     local pollenPercent = math.floor((settings.PollenCurrent / settings.PollenMax) * 100)
     
-    local statusText = string.format("```ansi\n\27[36m[STATUS]\27[0m Field: %s | Pollen: %d/%d (%d%%) | Backpack Full: %s\n```",
-        settings.CurrentField,
-        settings.PollenCurrent,
-        settings.PollenMax,
-        pollenPercent,
-        tostring(settings.BackpackFull)
-    )
-
     local data = {
-        ["content"] = statusText
+        ["embeds"] = {{
+            ["title"] = "📊 Macro Live Status Tracker",
+            ["color"] = 3447003, -- Синий цвет
+            ["fields"] = {
+                {["name"] = "Current Field", ["value"] = tostring(settings.CurrentField), ["inline"] = true},
+                {["name"] = "Pollen Progress", ["value"] = string.format("%d / %d (%d%%)", settings.PollenCurrent, settings.PollenMax, pollenPercent), ["inline"] = true},
+                {["name"] = "Backpack Status", ["value"] = settings.BackpackFull and "🔴 Full (Converting)" : "🟢 Collecting", ["inline"] = false}
+            },
+            ["footer"] = {["text"] = "Auto-updated every 5 seconds"}
+        }}
     }
 
     pcall(function()
