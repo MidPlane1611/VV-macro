@@ -3,9 +3,7 @@ getgenv().MacroSettings = {
     CurrentField = "Dandelion Field",
     FarmType = "Random",
     BackpackMethod = "Convert Hive",
-    HiveSlot = 1,
-    Farm = 1,
-    Convert = 0
+    HiveSlot = 1
 }
 
 local Players = game:GetService("Players")
@@ -50,8 +48,8 @@ mainGui.Parent = PlayerGui
 
 local mainFrame = Instance.new("Frame")
 mainFrame.Name = "MainFrame"
-mainFrame.Size = UDim2.new(0, 300, 0, 260)
-mainFrame.Position = UDim2.new(0.5, -150, 0.5, -130)
+mainFrame.Size = UDim2.new(0, 340, 0, 420)
+mainFrame.Position = UDim2.new(0.5, -170, 0.5, -210)
 mainFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
 mainFrame.Visible = false
 mainFrame.ZIndex = 10
@@ -91,46 +89,116 @@ closeButton.MouseButton1Click:Connect(function()
     mainFrame.Visible = false
 end)
 
-local fieldLabel = Instance.new("TextLabel")
-fieldLabel.Size = UDim2.new(0.9, 0, 0, 25)
-fieldLabel.Position = UDim2.new(0.05, 0, 0.2, 0)
-fieldLabel.BackgroundTransparency = 1
-fieldLabel.Text = "Field: Dandelion Field"
-fieldLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
-fieldLabel.TextSize = 14
-fieldLabel.Font = Enum.Font.Gotham
-fieldLabel.TextXAlignment = Enum.TextXAlignment.Left
-fieldLabel.ZIndex = 11
-fieldLabel.Parent = mainFrame
-
-local changeFieldBtn = Instance.new("TextButton")
-changeFieldBtn.Size = UDim2.new(0.9, 0, 0, 40)
-changeFieldBtn.Position = UDim2.new(0.05, 0, 0.32, 0)
-changeFieldBtn.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
-changeFieldBtn.Text = "Change Field"
-changeFieldBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-changeFieldBtn.TextSize = 14
-changeFieldBtn.Font = Enum.Font.Gotham
-changeFieldBtn.ZIndex = 11
-changeFieldBtn.Parent = mainFrame
-
-local fieldCorner = Instance.new("UICorner")
-fieldCorner.CornerRadius = UDim.new(0, 8)
-fieldCorner.Parent = changeFieldBtn
-
-local fields = {"Dandelion Field", "Sunflower Field", "Mushroom Field"}
+-- Выбор полей
+local fields = {
+    "Dandelion Field", "Sunflower Field", "Mushroom Field", "Blue Flower Field",
+    "Clover Field", "Spider Field", "Strawberry Field", "Bamboo Field",
+    "Pineapple Patch", "Stump Field", "Cactus Field", "Pumpkin Patch",
+    "Pine Tree Forest", "Rose Field", "Mountain Top Field", "Coconut Field"
+}
 local fieldIndex = 1
 
-changeFieldBtn.MouseButton1Click:Connect(function()
+local fieldBtn = Instance.new("TextButton")
+fieldBtn.Size = UDim2.new(0.9, 0, 0, 35)
+fieldBtn.Position = UDim2.new(0.05, 0, 0.12, 0)
+fieldBtn.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+fieldBtn.Text = "Field: Dandelion Field"
+fieldBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+fieldBtn.TextSize = 13
+fieldBtn.Font = Enum.Font.Gotham
+fieldBtn.ZIndex = 11
+fieldBtn.Parent = mainFrame
+
+local fCorner = Instance.new("UICorner")
+fCorner.CornerRadius = UDim.new(0, 6)
+fCorner.Parent = fieldBtn
+
+fieldBtn.MouseButton1Click:Connect(function()
     fieldIndex = fieldIndex % #fields + 1
     local newField = fields[fieldIndex]
     getgenv().MacroSettings.CurrentField = newField
-    fieldLabel.Text = "Field: " .. newField
+    fieldBtn.Text = "Field: " .. newField
 end)
 
+-- Выбор типа фарма (Random / Token Collector)
+local farmTypes = {"Random", "Token Collector"}
+local farmTypeIndex = 1
+
+local farmTypeBtn = Instance.new("TextButton")
+farmTypeBtn.Size = UDim2.new(0.9, 0, 0, 35)
+farmTypeBtn.Position = UDim2.new(0.05, 0, 0.28, 0)
+farmTypeBtn.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+farmTypeBtn.Text = "Farm Type: Random"
+farmTypeBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+farmTypeBtn.TextSize = 13
+farmTypeBtn.Font = Enum.Font.Gotham
+farmTypeBtn.ZIndex = 11
+farmTypeBtn.Parent = mainFrame
+
+local ftCorner = Instance.new("UICorner")
+ftCorner.CornerRadius = UDim.new(0, 6)
+ftCorner.Parent = farmTypeBtn
+
+farmTypeBtn.MouseButton1Click:Connect(function()
+    farmTypeIndex = farmTypeIndex % #farmTypes + 1
+    local newType = farmTypes[farmTypeIndex]
+    getgenv().MacroSettings.FarmType = newType
+    farmTypeBtn.Text = "Farm Type: " .. newType
+end)
+
+-- Выбор метода переработки (Convert Hive / Reset)
+local backpackMethods = {"Convert Hive", "Reset"}
+local methodIndex = 1
+
+local methodBtn = Instance.new("TextButton")
+methodBtn.Size = UDim2.new(0.9, 0, 0, 35)
+methodBtn.Position = UDim2.new(0.05, 0, 0.44, 0)
+methodBtn.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+methodBtn.Text = "Backpack Method: Convert Hive"
+methodBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+methodBtn.TextSize = 13
+methodBtn.Font = Enum.Font.Gotham
+methodBtn.ZIndex = 11
+methodBtn.Parent = mainFrame
+
+local mCorner = Instance.new("UICorner")
+mCorner.CornerRadius = UDim.new(0, 6)
+mCorner.Parent = methodBtn
+
+methodBtn.MouseButton1Click:Connect(function()
+    methodIndex = methodIndex % #backpackMethods + 1
+    local newMethod = backpackMethods[methodIndex]
+    getgenv().MacroSettings.BackpackMethod = newMethod
+    methodBtn.Text = "Backpack Method: " .. newMethod
+end)
+
+-- Выбор слота улья (1 - 6)
+local hiveSlotBtn = Instance.new("TextButton")
+hiveSlotBtn.Size = UDim2.new(0.9, 0, 0, 35)
+hiveSlotBtn.Position = UDim2.new(0.05, 0, 0.60, 0)
+hiveSlotBtn.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+hiveSlotBtn.Text = "Hive Slot: 1"
+hiveSlotBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+hiveSlotBtn.TextSize = 13
+hiveSlotBtn.Font = Enum.Font.Gotham
+hiveSlotBtn.ZIndex = 11
+hiveSlotBtn.Parent = mainFrame
+
+local hCorner = Instance.new("UICorner")
+hCorner.CornerRadius = UDim.new(0, 6)
+hCorner.Parent = hiveSlotBtn
+
+hiveSlotBtn.MouseButton1Click:Connect(function()
+    local currentSlot = getgenv().MacroSettings.HiveSlot
+    currentSlot = currentSlot % 6 + 1
+    getgenv().MacroSettings.HiveSlot = currentSlot
+    hiveSlotBtn.Text = "Hive Slot: " .. currentSlot
+end)
+
+-- Кнопка старт/стоп
 local startButton = Instance.new("TextButton")
 startButton.Size = UDim2.new(0.9, 0, 0, 45)
-startButton.Position = UDim2.new(0.05, 0, 0.65, 0)
+startButton.Position = UDim2.new(0.05, 0, 0.78, 0)
 startButton.BackgroundColor3 = Color3.fromRGB(0, 170, 0)
 startButton.Text = "START MACRO"
 startButton.TextColor3 = Color3.fromRGB(255, 255, 255)
@@ -158,20 +226,43 @@ startButton.MouseButton1Click:Connect(function()
                 local FieldData = {
                     ["Dandelion Field"] = Vector3.new(-75, 4, 185),
                     ["Sunflower Field"] = Vector3.new(-200, 4, 160),
-                    ["Mushroom Field"] = Vector3.new(-105, 4, 45)
+                    ["Mushroom Field"] = Vector3.new(-105, 4, 45),
+                    ["Blue Flower Field"] = Vector3.new(115, 4, 130),
+                    ["Clover Field"] = Vector3.new(170, 32, 190),
+                    ["Spider Field"] = Vector3.new(-55, 18, -20),
+                    ["Strawberry Field"] = Vector3.new(-180, 20, -10),
+                    ["Bamboo Field"] = Vector3.new(145, 20, -5),
+                    ["Pineapple Patch"] = Vector3.new(260, 68, -195),
+                    ["Stump Field"] = Vector3.new(437, 98, -175),
+                    ["Cactus Field"] = Vector3.new(-195, 68, -110),
+                    ["Pumpkin Patch"] = Vector3.new(180, 68, -110),
+                    ["Pine Tree Forest"] = Vector3.new(-325, 68, -175),
+                    ["Rose Field"] = Vector3.new(-130, 4, -135),
+                    ["Mountain Top Field"] = Vector3.new(75, 176, -165),
+                    ["Coconut Field"] = Vector3.new(-265, 72, 460)
                 }
                 while settings.Running do
                     local char = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
                     local humanoid = char:FindFirstChildOfClass("Humanoid")
                     local currentField = settings.CurrentField
-                    local basePos = FieldData[currentField] or FieldData["Dandelion Field"]
+                    local basePos = FieldData[currentField] or Vector3.new(0, 0, 0)
                     
                     if humanoid then
-                        for x = -12, 12, 3 do
-                            for z = -12, 12, 3 do
-                                if not settings.Running then break end
-                                humanoid:MoveTo(basePos + Vector3.new(x, 0, z))
-                                humanoid.MoveToFinished:Wait()
+                        if settings.FarmType == "Random" then
+                            for x = -12, 12, 3 do
+                                for z = -12, 12, 3 do
+                                    if not settings.Running then break end
+                                    humanoid:MoveTo(basePos + Vector3.new(math.random(-6, 6), 0, math.random(-6, 6)))
+                                    humanoid.MoveToFinished:Wait()
+                                end
+                            end
+                        else
+                            for x = -12, 12, 3 do
+                                for z = -12, 12, 3 do
+                                    if not settings.Running then break end
+                                    humanoid:MoveTo(basePos + Vector3.new(x, 0, z))
+                                    humanoid.MoveToFinished:Wait()
+                                end
                             end
                         end
                     end
