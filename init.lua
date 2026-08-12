@@ -173,27 +173,52 @@ local FieldData = {
 
 local NetworkTokens = {}
 
-local function startCollectibleListener()
+local function startListeners()
     pcall(function()
         for _, obj in ipairs(ReplicatedStorage:GetDescendants()) do
-            if obj.Name == "CollectibleEvent" and obj:IsA("RemoteEvent") then
-                obj.OnClientEvent:Connect(function(...)
-                    local args = {...}
-                    if args[1] and type(args[1]) == "string" and args[1]:lower():find("spawn") then
-                        for i = 2, #args do
-                            local arg = args[i]
-                            if typeof(arg) == "Vector3" then
-                                table.insert(NetworkTokens, {Pos = arg, Time = tick()})
-                            elseif type(arg) == "table" then
-                                for _, sub in pairs(arg) do
-                                    if typeof(sub) == "Vector3" then
-                                        table.insert(NetworkTokens, {Pos = sub, Time = tick()})
+            if obj:IsA("RemoteEvent") then
+                -- 1. Сбор токенов
+                if obj.Name == "CollectibleEvent" then
+                    obj.OnClientEvent:Connect(function(...)
+                        local args = {...}
+                        if args[1] and type(args[1]) == "string" and args[1]:lower():find("spawn") then
+                            for i = 2, #args do
+                                local arg = args[i]
+                                if typeof(arg) == "Vector3" then
+                                    table.insert(NetworkTokens, {Pos = arg, Time = tick()})
+                                elseif type(arg) == "table" then
+                                    for _, sub in pairs(arg) do
+                                        if typeof(sub) == "Vector3" then
+                                            table.insert(NetworkTokens, {Pos = sub, Time = tick()})
+                                        end
                                     end
                                 end
                             end
                         end
-                    end
-                end)
+                    end)
+                end
+                
+                -- 2. Проверка полного рюкзака (переход к улью): Farm становится 0, Convert становится 1
+                if obj.Name == "ReceiveAlert" then
+                    obj.OnClientEvent:Connect(function(...)
+                        local args = {...}
+                        for _, arg in ipairs(args) do
+                            if type(arg) == "string" and arg:lower():find("pollen container full") then
+                                getgenv().MacroSettings.Farm = 0
+                                getgenv().MacroSettings.Convert = 1
+                                break
+                            elseif type(arg) == "table" then
+                                for _, sub in pairs(arg) do
+                                    if type(sub) == "string" and sub:lower():find("pollen container full") then
+                                        getgenv().MacroSettings.Farm = 0
+                                        getgenv().MacroSettings.Convert = 1
+                                        break
+                                    end
+                                end
+                            end
+                        end
+                    end)
+                end
             end
         end
     end)
@@ -220,25 +245,36 @@ local function findSpawnToken(hrpPos, radius)
     return nearestPos
 end
 
--- Функция для получения данных Pollen из Workspace
-local function getWorkspacePollen()
-    local curr, max = 0, 100
+-- Функция проверки текущего значения Pollen в Workspace
+local function getWorkspacePollenValue()
+    local curr = -1
     pcall(function()
-        -- Проходим по объектам в Workspace для поиска значений игрока
-        for _, obj in ipairs(Workspace:GetDescendants()) do
-            if obj.Name == "Pollen" or obj.Name == "Capacity" then
-                -- Убедимся, что это относится к нашему игроку (если папка/модель содержит имя игрока)
-                if obj.Parent and (obj.Parent.Name == LocalPlayer.Name or obj.Parent.Parent == LocalPlayer) then
-                    if obj.Name == "Pollen" and (obj:IsA("NumberValue") or obj:IsA("IntValue")) then
+        local hivesFolder = Workspace:FindFirstChild("Honeycombs") or Workspace:FindFirstChild("Hives")
+        if hivesFolder then
+            for _, hive in ipairs(hivesFolder:GetChildren()) do
+                local owner = hive:FindFirstChild("Owner")
+                if owner and owner.Value == LocalPlayer then
+                    local pollenVal = hive:FindFirstChild("Pollen") or hive:FindFirstChild("TotalPollen")
+                    if pollenVal then
+                        curr = pollenVal.Value
+                        break
+                    end
+                end
+            end
+        end
+        
+        if curr == -1 then
+            for _, obj in ipairs(Workspace:GetDescendants()) do
+                if obj.Name == "Pollen" and (obj:IsA("NumberValue") or obj:IsA("IntValue")) then
+                    if obj.Parent and (obj.Parent.Name == LocalPlayer.Name or (obj.Parent:FindFirstChild("Owner") and obj.Parent.Owner.Value == LocalPlayer)) then
                         curr = obj.Value
-                    elseif obj.Name == "Capacity" and (obj:IsA("NumberValue") or obj:IsA("IntValue")) then
-                        max = obj.Value
+                        break
                     end
                 end
             end
         end
     end)
-    return curr, max
+    return curr
 end
 
 startButton.MouseButton1Click:Connect(function()
@@ -248,7 +284,7 @@ startButton.MouseButton1Click:Connect(function()
         startButton.Text = "STOP MACRO"
         startButton.BackgroundColor3 = Color3.fromRGB(170, 0, 0)
         
-        startCollectibleListener()
+        startListeners()
 
         -- Сбор инструментов
         task.spawn(function()
@@ -268,6 +304,7 @@ startButton.MouseButton1Click:Connect(function()
         -- Основной цикл макроса
         task.spawn(function()
             local isConvertingAtHive = false
+            local waitingForReset = false
 
             while settings.Running do
                 local char = LocalPlayer.Character
@@ -278,6 +315,7 @@ startButton.MouseButton1Click:Connect(function()
                     settings.Farm = 1
                     settings.Convert = 0
                     isConvertingAtHive = false
+                    waitingForReset = false
                     task.wait(10)
                     repeat task.wait(0.5)
                         char = LocalPlayer.Character
@@ -299,16 +337,19 @@ startButton.MouseButton1Click:Connect(function()
                         if part:IsA("BasePart") then part.CanCollide = false end
                     end
 
-                    -- ЧТЕНИЕ ПЫЛЬЦЫ ИЗ WORKSPACE
-                    local currPollen, maxPollen = getWorkspacePollen()
-                    
-                    if currPollen >= maxPollen and settings.Farm == 1 then
-                        settings.Farm = 0
-                        settings.Convert = 1
-                    elseif currPollen == 0 and settings.Convert == 1 then
-                        settings.Farm = 1
-                        settings.Convert = 0
-                        isConvertingAtHive = false
+                    -- ЕСЛИ МЫ КОНВЕРТИРУЕМ (Convert == 1), ПРОВЕРЯЕМ Pollen через Workspace == 0
+                    if settings.Convert == 1 and not waitingForReset then
+                        local currPollen = getWorkspacePollenValue()
+                        if currPollen == 0 then
+                            waitingForReset = true
+                            task.spawn(function()
+                                task.wait(5) -- Ждем 5 секунд после того, как Pollen стал равным 0
+                                settings.Farm = 1
+                                settings.Convert = 0
+                                isConvertingAtHive = false
+                                waitingForReset = false
+                            end)
+                        end
                     end
 
                     -- 1. ФАРМ (Строго когда Farm == 1 и Convert == 0)
