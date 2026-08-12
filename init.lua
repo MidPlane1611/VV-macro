@@ -314,7 +314,8 @@ startButton.MouseButton1Click:Connect(function()
                 local char = LocalPlayer.Character
                 local humanoid = char and char:FindFirstChildOfClass("Humanoid")
                 
-                if not char or not char:FindFirstChild("HumanoidRootPart") or (humanoid and humanoid.Health <= 0) then
+                -- Детект смерти по здоровью (если хп <= 0 или персонажа/гуманоида нет)
+                if not char or not char:FindFirstChild("HumanoidRootPart") or not humanoid or humanoid.Health <= 0 then
                     if clientPlatform then clientPlatform:Destroy() clientPlatform = nil end
                     settings.Farm = 1
                     settings.Convert = 0
@@ -322,6 +323,7 @@ startButton.MouseButton1Click:Connect(function()
                     waitingForReset = false
                     isReturningFromOut = false
                     
+                    -- Ждем пока персонаж возродится и у него появится здоровье больше 0
                     repeat 
                         task.wait(0.5)
                         char = LocalPlayer.Character
@@ -371,12 +373,10 @@ startButton.MouseButton1Click:Connect(function()
                         if settings.Farm == 1 and settings.Convert == 0 and (hrp.Position - basePos).Magnitude > 20 and not isReturningFromOut then
                             isReturningFromOut = true
                             
-                            -- Телепортируемся на 15 студов ниже под поле (-15)
                             local currentDownOffset = -15
                             local targetPos = basePos + Vector3.new(0, currentDownOffset, 0)
                             hrp.CFrame = CFrame.new(targetPos)
                             
-                            -- Создаем платформу под ногами
                             if not clientPlatform then
                                 clientPlatform = Instance.new("Part")
                                 clientPlatform.Size = Vector3.new(6, 1, 6)
@@ -388,13 +388,11 @@ startButton.MouseButton1Click:Connect(function()
                                 clientPlatform.Parent = Workspace
                             end
                             
-                            -- Ожидание 20 секунд с проверкой каждую 1 секунду (опускаем ещё на 5 студов ниже при необходимости)
                             local waitTime = 0
                             while waitTime < 20 and settings.Running do
                                 task.wait(1)
                                 waitTime = waitTime + 1
                                 
-                                -- Проверка каждую секунду: если нужно, опускаем ещё на 5 студов ниже
                                 if hrp and clientPlatform then
                                     currentDownOffset = currentDownOffset - 5
                                     targetPos = basePos + Vector3.new(0, currentDownOffset, 0)
@@ -403,7 +401,6 @@ startButton.MouseButton1Click:Connect(function()
                                 end
                             end
                             
-                            -- Удаляем платформу перед возвращением
                             if clientPlatform then
                                 clientPlatform:Destroy()
                                 clientPlatform = nil
