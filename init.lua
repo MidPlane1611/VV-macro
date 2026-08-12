@@ -14,6 +14,7 @@ local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 local VirtualInputManager = game:GetService("VirtualInputManager")
+local Workspace = game:GetService("Workspace")
 
 if PlayerGui:FindFirstChild("VVMacroMiniGui") then PlayerGui.VVMacroMiniGui:Destroy() end
 if PlayerGui:FindFirstChild("VVMacroMainGui") then PlayerGui.VVMacroMainGui:Destroy() end
@@ -307,21 +308,28 @@ startButton.MouseButton1Click:Connect(function()
         task.spawn(function()
             local isConvertingAtHive = false
             local waitingForReset = false
+            local isReturningFromOut = false
+            local clientPlatform = nil
 
             while settings.Running do
                 local char = LocalPlayer.Character
                 local humanoid = char and char:FindFirstChildOfClass("Humanoid")
                 
                 if not char or not char:FindFirstChild("HumanoidRootPart") or (humanoid and humanoid.Health <= 0) then
+                    if clientPlatform then clientPlatform:Destroy() clientPlatform = nil end
                     settings.Farm = 1
                     settings.Convert = 0
                     isConvertingAtHive = false
                     waitingForReset = false
-                    task.wait(10)
-                    repeat task.wait(0.5)
-                        char = LocalPlayer.Character
-                    until char and char:FindFirstChild("HumanoidRootPart") and char:FindFirstChildOfClass("Humanoid") and char:FindFirstChildOfClass("Humanoid").Health > 0
+                    isReturningFromOut = false
                     
+                    repeat 
+                        task.wait(0.5)
+                        char = LocalPlayer.Character
+                        humanoid = char and char:FindFirstChildOfClass("Humanoid")
+                    until char and char:FindFirstChild("HumanoidRootPart") and humanoid and humanoid.Health > 0
+                    
+                    task.wait(1.5)
                     local hrp = char:FindFirstChild("HumanoidRootPart")
                     local basePos = FieldData[settings.CurrentField] or Vector3.new(0, 5, 0)
                     if hrp then
@@ -334,11 +342,13 @@ startButton.MouseButton1Click:Connect(function()
                     local hrp = char.HumanoidRootPart
                     humanoid = char:FindFirstChildOfClass("Humanoid")
                     
+                    -- Noclip: отключаем коллизии для всех частей тела
                     for _, part in ipairs(char:GetDescendants()) do
                         if part:IsA("BasePart") then part.CanCollide = false end
                     end
 
                     if settings.Convert == 1 and not waitingForReset then
+                        if clientPlatform then clientPlatform:Destroy() clientPlatform = nil end
                         local currPollen = getCoreStatsPollen()
                         if currPollen ~= -1 and currPollen <= 0 then
                             waitingForReset = true
@@ -359,11 +369,46 @@ startButton.MouseButton1Click:Connect(function()
                     if settings.Farm == 1 and settings.Convert == 0 then
                         local basePos = FieldData[settings.CurrentField] or Vector3.new(0, 5, 0)
                         
-                        if (hrp.Position - basePos).Magnitude > 60 and settings.FarmType ~= "Instant Collector" then
-                            hrp.CFrame = CFrame.new(basePos + Vector3.new(0, 2, 0))
+                        -- Проверка выхода за пределы зоны фарма (> 16 студов) ТОЛЬКО во время фарма (Farm == 1)
+                        if settings.Farm == 1 and settings.Convert == 0 and (hrp.Position - basePos).Magnitude > 16 and not isReturningFromOut then
+                            isReturningFromOut = true
+                            
+                            -- Телепортируемся на 10 студов ниже под поле
+                            local targetPos = basePos + Vector3.new(0, -10, 0)
+                            hrp.CFrame = CFrame.new(targetPos)
+                            
+                            -- Создаем клиентскую платформу под ногами
+                            if not clientPlatform then
+                                clientPlatform = Instance.new("Part")
+                                clientPlatform.Size = Vector3.new(6, 1, 6)
+                                clientPlatform.Position = targetPos - Vector3.new(0, 3, 0)
+                                clientPlatform.Anchored = true
+                                clientPlatform.CanCollide = true
+                                clientPlatform.Transparency = 0.5 -- Сделай 1, если нужна полностью невидимая
+                                clientPlatform.BrickColor = BrickColor.new("Bright yellow")
+                                clientPlatform.Parent = Workspace
+                            end
+                            
+                            -- Ждем 20 секунд
+                            local waitTime = 0
+                            while waitTime < 20 and settings.Running do
+                                task.wait(1)
+                                waitTime = waitTime + 1
+                            end
+                            
+                            -- Удаляем платформу перед возвращением
+                            if clientPlatform then
+                                clientPlatform:Destroy()
+                                clientPlatform = nil
+                            end
+                            
+                            if settings.Running then
+                                hrp.CFrame = CFrame.new(basePos + Vector3.new(0, 2, 0))
+                            end
+                            isReturningFromOut = false
                         end
                         
-                        if humanoid then
+                        if not isReturningFromOut and humanoid then
                             if settings.FarmType == "Instant Collector" then
                                 local tokenPos = findAndRemoveToken(basePos, 32)
                                 if tokenPos then
@@ -407,6 +452,7 @@ startButton.MouseButton1Click:Connect(function()
                         end
 
                     elseif settings.Farm == 0 and settings.Convert == 1 then
+                        if clientPlatform then clientPlatform:Destroy() clientPlatform = nil end
                         if not isConvertingAtHive then
                             isConvertingAtHive = true
                             
