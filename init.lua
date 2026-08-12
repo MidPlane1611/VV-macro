@@ -11,7 +11,6 @@ getgenv().MacroSettings = {
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
 local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
-local VirtualUser = game:GetService("VirtualUser")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 if PlayerGui:FindFirstChild("VVMacroMiniGui") then PlayerGui.VVMacroMiniGui:Destroy() end
@@ -42,6 +41,7 @@ mainFrame.Size = UDim2.new(0, 340, 0, 420)
 mainFrame.Position = UDim2.new(0.5, -170, 0.5, -210)
 mainFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
 mainFrame.Visible = false
+mainFrame.ZIndex = 5
 Instance.new("UICorner", mainFrame).CornerRadius = UDim.new(0, 12)
 
 local closeButton = Instance.new("TextButton", mainFrame)
@@ -52,26 +52,14 @@ closeButton.Text = "X"
 closeButton.TextColor3 = Color3.fromRGB(200, 200, 200)
 closeButton.TextSize = 16
 closeButton.Font = Enum.Font.GothamBold
+closeButton.ZIndex = 6
 closeButton.MouseButton1Click:Connect(function() mainFrame.Visible = false end)
 
--- ВСЕ 16 ТОЧНЫХ ПОЛЕЙ ИГРЫ
 local fields = {
-    "Dandelion Field",
-    "Clover Field",
-    "Blue Flower Field",
-    "Mushroom Field",
-    "Sunflower Field",
-    "Spider Field",
-    "Bamboo Field",
-    "Strawberry Field",
-    "Pineapple Field",
-    "Stump Field",
-    "Cactus Field",
-    "Pumpkin Field",
-    "Pine Tree Field",
-    "Rose Field",
-    "Pepper Field",
-    "Coconut Field"
+    "Dandelion Field", "Clover Field", "Blue Flower Field", "Mushroom Field",
+    "Sunflower Field", "Spider Field", "Bamboo Field", "Strawberry Field",
+    "Pineapple Field", "Stump Field", "Cactus Field", "Pumpkin Field",
+    "Pine Tree Field", "Rose Field", "Pepper Field", "Coconut Field"
 }
 local fieldIndex = 1
 
@@ -82,6 +70,7 @@ fieldBtn.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
 fieldBtn.Text = "Field: Dandelion Field"
 fieldBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
 fieldBtn.TextSize = 13
+fieldBtn.ZIndex = 6
 Instance.new("UICorner", fieldBtn).CornerRadius = UDim.new(0, 6)
 
 fieldBtn.MouseButton1Click:Connect(function()
@@ -90,7 +79,6 @@ fieldBtn.MouseButton1Click:Connect(function()
     fieldBtn.Text = "Field: " .. fields[fieldIndex]
 end)
 
--- ТИП ФАРМА (Random / Token Collector)
 local farmTypes = {"Random", "Token Collector"}
 local farmTypeIndex = 1
 
@@ -101,6 +89,7 @@ farmTypeBtn.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
 farmTypeBtn.Text = "Farm Type: Random"
 farmTypeBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
 farmTypeBtn.TextSize = 13
+farmTypeBtn.ZIndex = 6
 Instance.new("UICorner", farmTypeBtn).CornerRadius = UDim.new(0, 6)
 
 farmTypeBtn.MouseButton1Click:Connect(function()
@@ -109,7 +98,6 @@ farmTypeBtn.MouseButton1Click:Connect(function()
     farmTypeBtn.Text = "Farm Type: " .. farmTypes[farmTypeIndex]
 end)
 
--- МЕТОД РЕАКЦИИ НА РЮКЗАК
 local backpackMethods = {"Convert Hive", "Reset"}
 local methodIndex = 1
 
@@ -120,6 +108,7 @@ methodBtn.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
 methodBtn.Text = "Backpack Method: Convert Hive"
 methodBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
 methodBtn.TextSize = 13
+methodBtn.ZIndex = 6
 Instance.new("UICorner", methodBtn).CornerRadius = UDim.new(0, 6)
 
 methodBtn.MouseButton1Click:Connect(function()
@@ -128,7 +117,6 @@ methodBtn.MouseButton1Click:Connect(function()
     methodBtn.Text = "Backpack Method: " .. backpackMethods[methodIndex]
 end)
 
--- СЛОТ УЛЬЯ
 local hiveSlotBtn = Instance.new("TextButton", mainFrame)
 hiveSlotBtn.Size = UDim2.new(0.9, 0, 0, 35)
 hiveSlotBtn.Position = UDim2.new(0.05, 0, 0.60, 0)
@@ -136,6 +124,7 @@ hiveSlotBtn.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
 hiveSlotBtn.Text = "Hive Slot: 1"
 hiveSlotBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
 hiveSlotBtn.TextSize = 13
+hiveSlotBtn.ZIndex = 6
 Instance.new("UICorner", hiveSlotBtn).CornerRadius = UDim.new(0, 6)
 
 hiveSlotBtn.MouseButton1Click:Connect(function()
@@ -152,6 +141,7 @@ startButton.Text = "START MACRO"
 startButton.TextColor3 = Color3.fromRGB(255, 255, 255)
 startButton.TextSize = 14
 startButton.Font = Enum.Font.GothamBold
+startButton.ZIndex = 6
 Instance.new("UICorner", startButton).CornerRadius = UDim.new(0, 8)
 
 toggleButton.MouseButton1Click:Connect(function() mainFrame.Visible = not mainFrame.Visible end)
@@ -161,7 +151,6 @@ local HiveCoords = {
     [4] = Vector3.new(-77, 6, 331),  [5] = Vector3.new(-40, 6, 331),  [6] = Vector3.new(-3, 6, 331)
 }
 
--- ПОЛНЫЙ И ТОЧНЫЙ СПИСОК КООРДИНАТ ВСЕХ 16 ПОЛЕЙ
 local FieldData = {
     ["Dandelion Field"]    = Vector3.new(-33, 4, 219),
     ["Clover Field"]       = Vector3.new(154, 34, 193),
@@ -181,7 +170,6 @@ local FieldData = {
     ["Coconut Field"]      = Vector3.new(-254, 71, 466)
 }
 
--- СЕТЕВОЙ ПЕРЕХВАТЧИК ТОКЕНОВ (Аргумент №1 == "Spawn")
 local NetworkTokens = {}
 
 local function startCollectibleListener()
@@ -240,14 +228,15 @@ startButton.MouseButton1Click:Connect(function()
         
         startCollectibleListener()
 
-        -- Автокликер (0.05 сек)
+        -- Имитация сбора через твой RemoteEvent
         task.spawn(function()
             while settings.Running do
                 if settings.Farm == 1 and settings.Convert == 0 then
                     pcall(function()
-                        VirtualUser:Button1Down(Vector2.new(0,0))
-                        task.wait(0.01)
-                        VirtualUser:Button1Up(Vector2.new(0,0))
+                        local toolEvent = ReplicatedStorage:FindFirstChild("Events") and ReplicatedStorage.Events:FindFirstChild("ToolCollect")
+                        if toolEvent and toolEvent:IsA("RemoteEvent") then
+                            toolEvent:FireServer()
+                        end
                     end)
                 end
                 task.wait(0.05)
@@ -267,14 +256,11 @@ startButton.MouseButton1Click:Connect(function()
                     end
 
                     -- Детект заполненности рюкзака
-                    local screenGui = PlayerGui:FindFirstChild("ScreenGui")
                     local pollenLabel = nil
-                    if screenGui then
-                        for _, desc in ipairs(screenGui:GetDescendants()) do
-                            if desc:IsA("TextLabel") and desc.Text:find("/") and (desc.Text:lower():find("pollen") or desc.Text:find("%d+/%d+")) then
-                                pollenLabel = desc
-                                break
-                            end
+                    for _, desc in ipairs(PlayerGui:GetDescendants()) do
+                        if desc:IsA("TextLabel") and desc.Text:find("/") and (desc.Text:lower():find("pollen") or desc.Text:find("%d+/%d+")) then
+                            pollenLabel = desc
+                            break
                         end
                     end
 
@@ -314,11 +300,10 @@ startButton.MouseButton1Click:Connect(function()
                                     humanoid.MoveToFinished:Wait()
                                 end
                             else
-                                -- Режим Random (случайные шаги по полю)
                                 for _ = 1, 5 do
                                     if not settings.Running or settings.Farm == 0 then break end
                                     humanoid:MoveTo(basePos + Vector3.new(math.random(-12, 12), 0, math.random(-12, 12)))
-                                    humanoid.MoveToFinished:Wait()
+                                    task.wait(0.5)
                                 end
                             end
                         end
@@ -329,7 +314,7 @@ startButton.MouseButton1Click:Connect(function()
                             task.wait(4)
                         else
                             local targetHive = HiveCoords[settings.HiveSlot] or HiveCoords[1]
-                            hrp.CFrame = CFrame.new(targetHive)
+                            hrp.CFrame = CFrame.new(targetHive + Vector3.new(0, 3, 0))
                             task.wait(3)
                         end
                     end
