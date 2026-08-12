@@ -1,7 +1,8 @@
 getgenv().MacroSettings = {
     Running = false,
     CurrentField = "Dandelion Field",
-    FarmType = "Token Collector",
+    FarmType = "Random",
+    BackpackMethod = "Convert Hive",
     HiveSlot = 1,
     Farm = 1,
     Convert = 0
@@ -53,7 +54,25 @@ closeButton.TextSize = 16
 closeButton.Font = Enum.Font.GothamBold
 closeButton.MouseButton1Click:Connect(function() mainFrame.Visible = false end)
 
-local fields = {"Dandelion Field", "Sunflower Field", "Mushroom Field", "Blue Flower Field", "Clover Field", "Spider Field", "Strawberry Field", "Bamboo Field", "Pineapple Patch", "Stump Field", "Cactus Field", "Pumpkin Patch", "Pine Tree Forest", "Rose Field", "Mountain Top Field", "Coconut Field"}
+-- ВСЕ 16 ТОЧНЫХ ПОЛЕЙ ИГРЫ
+local fields = {
+    "Dandelion Field",
+    "Clover Field",
+    "Blue Flower Field",
+    "Mushroom Field",
+    "Sunflower Field",
+    "Spider Field",
+    "Bamboo Field",
+    "Strawberry Field",
+    "Pineapple Field",
+    "Stump Field",
+    "Cactus Field",
+    "Pumpkin Field",
+    "Pine Tree Field",
+    "Rose Field",
+    "Pepper Field",
+    "Coconut Field"
+}
 local fieldIndex = 1
 
 local fieldBtn = Instance.new("TextButton", mainFrame)
@@ -71,6 +90,45 @@ fieldBtn.MouseButton1Click:Connect(function()
     fieldBtn.Text = "Field: " .. fields[fieldIndex]
 end)
 
+-- ТИП ФАРМА (Random / Token Collector)
+local farmTypes = {"Random", "Token Collector"}
+local farmTypeIndex = 1
+
+local farmTypeBtn = Instance.new("TextButton", mainFrame)
+farmTypeBtn.Size = UDim2.new(0.9, 0, 0, 35)
+farmTypeBtn.Position = UDim2.new(0.05, 0, 0.28, 0)
+farmTypeBtn.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+farmTypeBtn.Text = "Farm Type: Random"
+farmTypeBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+farmTypeBtn.TextSize = 13
+Instance.new("UICorner", farmTypeBtn).CornerRadius = UDim.new(0, 6)
+
+farmTypeBtn.MouseButton1Click:Connect(function()
+    farmTypeIndex = farmTypeIndex % #farmTypes + 1
+    getgenv().MacroSettings.FarmType = farmTypes[farmTypeIndex]
+    farmTypeBtn.Text = "Farm Type: " .. farmTypes[farmTypeIndex]
+end)
+
+-- МЕТОД РЕАКЦИИ НА РЮКЗАК
+local backpackMethods = {"Convert Hive", "Reset"}
+local methodIndex = 1
+
+local methodBtn = Instance.new("TextButton", mainFrame)
+methodBtn.Size = UDim2.new(0.9, 0, 0, 35)
+methodBtn.Position = UDim2.new(0.05, 0, 0.44, 0)
+methodBtn.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+methodBtn.Text = "Backpack Method: Convert Hive"
+methodBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+methodBtn.TextSize = 13
+Instance.new("UICorner", methodBtn).CornerRadius = UDim.new(0, 6)
+
+methodBtn.MouseButton1Click:Connect(function()
+    methodIndex = methodIndex % #backpackMethods + 1
+    getgenv().MacroSettings.BackpackMethod = backpackMethods[methodIndex]
+    methodBtn.Text = "Backpack Method: " .. backpackMethods[methodIndex]
+end)
+
+-- СЛОТ УЛЬЯ
 local hiveSlotBtn = Instance.new("TextButton", mainFrame)
 hiveSlotBtn.Size = UDim2.new(0.9, 0, 0, 35)
 hiveSlotBtn.Position = UDim2.new(0.05, 0, 0.60, 0)
@@ -103,18 +161,27 @@ local HiveCoords = {
     [4] = Vector3.new(-77, 6, 331),  [5] = Vector3.new(-40, 6, 331),  [6] = Vector3.new(-3, 6, 331)
 }
 
+-- ПОЛНЫЙ И ТОЧНЫЙ СПИСОК КООРДИНАТ ВСЕХ 16 ПОЛЕЙ
 local FieldData = {
-    ["Dandelion Field"] = Vector3.new(-75, 4, 185), ["Sunflower Field"] = Vector3.new(-200, 4, 160),
-    ["Mushroom Field"] = Vector3.new(-105, 4, 45),   ["Blue Flower Field"] = Vector3.new(115, 4, 130),
-    ["Clover Field"] = Vector3.new(170, 32, 190),   ["Spider Field"] = Vector3.new(-55, 18, -20),
-    ["Strawberry Field"] = Vector3.new(-180, 20, -10), ["Bamboo Field"] = Vector3.new(145, 20, -5),
-    ["Pineapple Patch"] = Vector3.new(260, 68, -195), ["Stump Field"] = Vector3.new(437, 98, -175),
-    ["Cactus Field"] = Vector3.new(-195, 68, -110),  ["Pumpkin Patch"] = Vector3.new(180, 68, -110),
-    ["Pine Tree Forest"] = Vector3.new(-325, 68, -175), ["Rose Field"] = Vector3.new(-130, 4, -135),
-    ["Mountain Top Field"] = Vector3.new(75, 176, -165), ["Coconut Field"] = Vector3.new(-265, 72, 460)
+    ["Dandelion Field"]    = Vector3.new(-33, 4, 219),
+    ["Clover Field"]       = Vector3.new(154, 34, 193),
+    ["Blue Flower Field"]  = Vector3.new(152, 4, 99),
+    ["Mushroom Field"]     = Vector3.new(-95, 4, 117),
+    ["Sunflower Field"]    = Vector3.new(-212, 4, 177),
+    ["Spider Field"]       = Vector3.new(-49, 20, -8),
+    ["Bamboo Field"]       = Vector3.new(121, 20, -26),
+    ["Strawberry Field"]   = Vector3.new(-175, 20, -7),
+    ["Pineapple Field"]    = Vector3.new(249, 68, -207),
+    ["Stump Field"]        = Vector3.new(422, 96, -176),
+    ["Cactus Field"]       = Vector3.new(-183, 69, -104),
+    ["Pumpkin Field"]      = Vector3.new(-189, 69, -183),
+    ["Pine Tree Field"]    = Vector3.new(-330, 68, -185),
+    ["Rose Field"]         = Vector3.new(-330, 20, 127),
+    ["Pepper Field"]       = Vector3.new(-491, 123, 533),
+    ["Coconut Field"]      = Vector3.new(-254, 71, 466)
 }
 
--- СЕТЕВОЙ ПЕРЕХВАТЧИК ТОЧНО ПО АРГУМЕНТУ №1 ("Spawn")
+-- СЕТЕВОЙ ПЕРЕХВАТЧИК ТОКЕНОВ (Аргумент №1 == "Spawn")
 local NetworkTokens = {}
 
 local function startCollectibleListener()
@@ -123,9 +190,7 @@ local function startCollectibleListener()
             if obj.Name == "CollectibleEvent" and obj:IsA("RemoteEvent") then
                 obj.OnClientEvent:Connect(function(...)
                     local args = {...}
-                    -- Проверяем, что аргумент номер 1 равен "Spawn" (или содержит это слово)
                     if args[1] and type(args[1]) == "string" and args[1]:lower():find("spawn") then
-                        -- Ищем среди остальных аргументов Vector3 (координаты)
                         for i = 2, #args do
                             local arg = args[i]
                             if typeof(arg) == "Vector3" then
@@ -145,7 +210,6 @@ local function startCollectibleListener()
     end)
 end
 
--- Поиск токена в радиусе (круге)
 local function findSpawnToken(hrpPos, radius)
     local nearestPos = nil
     local shortestDist = radius
@@ -176,6 +240,7 @@ startButton.MouseButton1Click:Connect(function()
         
         startCollectibleListener()
 
+        -- Автокликер (0.05 сек)
         task.spawn(function()
             while settings.Running do
                 if settings.Farm == 1 and settings.Convert == 0 then
@@ -189,6 +254,7 @@ startButton.MouseButton1Click:Connect(function()
             end
         end)
 
+        -- Основной цикл макроса
         task.spawn(function()
             while settings.Running do
                 local char = LocalPlayer.Character
@@ -200,6 +266,7 @@ startButton.MouseButton1Click:Connect(function()
                         if part:IsA("BasePart") then part.CanCollide = false end
                     end
 
+                    -- Детект заполненности рюкзака
                     local screenGui = PlayerGui:FindFirstChild("ScreenGui")
                     local pollenLabel = nil
                     if screenGui then
@@ -228,6 +295,7 @@ startButton.MouseButton1Click:Connect(function()
                         end
                     end
 
+                    -- ФАРМ ИЛИ КОНВЕРТАЦИЯ
                     if settings.Farm == 1 and settings.Convert == 0 then
                         local basePos = FieldData[settings.CurrentField] or Vector3.new(0, 5, 0)
                         
@@ -238,7 +306,6 @@ startButton.MouseButton1Click:Connect(function()
                         if humanoid then
                             if settings.FarmType == "Token Collector" then
                                 local tokenPos = findSpawnToken(hrp.Position, 20)
-                                
                                 if tokenPos then
                                     humanoid:MoveTo(tokenPos)
                                     humanoid.MoveToFinished:Wait()
@@ -247,6 +314,7 @@ startButton.MouseButton1Click:Connect(function()
                                     humanoid.MoveToFinished:Wait()
                                 end
                             else
+                                -- Режим Random (случайные шаги по полю)
                                 for _ = 1, 5 do
                                     if not settings.Running or settings.Farm == 0 then break end
                                     humanoid:MoveTo(basePos + Vector3.new(math.random(-12, 12), 0, math.random(-12, 12)))
@@ -256,9 +324,14 @@ startButton.MouseButton1Click:Connect(function()
                         end
 
                     elseif settings.Farm == 0 and settings.Convert == 1 then
-                        local targetHive = HiveCoords[settings.HiveSlot] or HiveCoords[1]
-                        hrp.CFrame = CFrame.new(targetHive)
-                        task.wait(3)
+                        if settings.BackpackMethod == "Reset" then
+                            LocalPlayer.Character:BreakJoints()
+                            task.wait(4)
+                        else
+                            local targetHive = HiveCoords[settings.HiveSlot] or HiveCoords[1]
+                            hrp.CFrame = CFrame.new(targetHive)
+                            task.wait(3)
+                        end
                     end
                 end
                 task.wait(0.1)
