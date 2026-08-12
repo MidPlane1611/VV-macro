@@ -12,6 +12,7 @@ local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
 local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local Workspace = game:GetService("Workspace")
 
 if PlayerGui:FindFirstChild("VVMacroMiniGui") then PlayerGui.VVMacroMiniGui:Destroy() end
 if PlayerGui:FindFirstChild("VVMacroMainGui") then PlayerGui.VVMacroMainGui:Destroy() end
@@ -219,6 +220,27 @@ local function findSpawnToken(hrpPos, radius)
     return nearestPos
 end
 
+-- Функция для получения данных Pollen из Workspace
+local function getWorkspacePollen()
+    local curr, max = 0, 100
+    pcall(function()
+        -- Проходим по объектам в Workspace для поиска значений игрока
+        for _, obj in ipairs(Workspace:GetDescendants()) do
+            if obj.Name == "Pollen" or obj.Name == "Capacity" then
+                -- Убедимся, что это относится к нашему игроку (если папка/модель содержит имя игрока)
+                if obj.Parent and (obj.Parent.Name == LocalPlayer.Name or obj.Parent.Parent == LocalPlayer) then
+                    if obj.Name == "Pollen" and (obj:IsA("NumberValue") or obj:IsA("IntValue")) then
+                        curr = obj.Value
+                    elseif obj.Name == "Capacity" and (obj:IsA("NumberValue") or obj:IsA("IntValue")) then
+                        max = obj.Value
+                    end
+                end
+            end
+        end
+    end)
+    return curr, max
+end
+
 startButton.MouseButton1Click:Connect(function()
     local settings = getgenv().MacroSettings
     settings.Running = not settings.Running
@@ -277,36 +299,19 @@ startButton.MouseButton1Click:Connect(function()
                         if part:IsA("BasePart") then part.CanCollide = false end
                     end
 
-                    -- ЧТЕНИЕ ПЫЛЬЦЫ ИЗ UI (Стр / Максимум)
-                    local pollenLabel = nil
-                    for _, desc in ipairs(PlayerGui:GetDescendants()) do
-                        if desc:IsA("TextLabel") and desc.Text:find("/") and desc.Text:match("%d+/%d+") then
-                            pollenLabel = desc
-                            break
-                        end
+                    -- ЧТЕНИЕ ПЫЛЬЦЫ ИЗ WORKSPACE
+                    local currPollen, maxPollen = getWorkspacePollen()
+                    
+                    if currPollen >= maxPollen and settings.Farm == 1 then
+                        settings.Farm = 0
+                        settings.Convert = 1
+                    elseif currPollen == 0 and settings.Convert == 1 then
+                        settings.Farm = 1
+                        settings.Convert = 0
+                        isConvertingAtHive = false
                     end
 
-                    if pollenLabel then
-                        local cleanText = pollenLabel.Text:gsub(",", "")
-                        local current, max = cleanText:match("(%d+)%s*/%s*(%d+)")
-                        if current and max then
-                            local currNum, maxNum = tonumber(current), tonumber(max)
-                            if currNum and maxNum then
-                                -- Если рюкзак полон -> Farm = 0, Convert = 1
-                                if currNum >= maxNum and settings.Farm == 1 then
-                                    settings.Farm = 0
-                                    settings.Convert = 1
-                                -- Если пыльца полностью опустошилась (0) и мы конвертировали -> возвращаем Farm = 1, Convert = 0
-                                elseif currNum == 0 and settings.Convert == 1 then
-                                    settings.Farm = 1
-                                    settings.Convert = 0
-                                    isConvertingAtHive = false
-                                end
-                            end
-                        end
-                    end
-
-                    -- 1. ФАРМ (Только если Farm == 1 и Convert == 0)
+                    -- 1. ФАРМ (Строго когда Farm == 1 и Convert == 0)
                     if settings.Farm == 1 and settings.Convert == 0 then
                         local basePos = FieldData[settings.CurrentField] or Vector3.new(0, 5, 0)
                         
@@ -326,14 +331,14 @@ startButton.MouseButton1Click:Connect(function()
                                 end
                             else
                                 for _ = 1, 5 do
-                                    if not settings.Running or settings.Farm == 1 == false or settings.Convert == 1 then break end
+                                    if not settings.Running or settings.Farm == 0 or settings.Convert == 1 then break end
                                     humanoid:MoveTo(basePos + Vector3.new(math.random(-12, 12), 0, math.random(-12, 12)))
                                     task.wait(0.5)
                                 end
                             end
                         end
 
-                    -- 2. КОНВЕРТАЦИЯ (Только если Convert == 1 и Farm == 0)
+                    -- 2. КОНВЕРТАЦИЯ (Строго когда Farm == 0 и Convert == 1)
                     elseif settings.Farm == 0 and settings.Convert == 1 then
                         if not isConvertingAtHive then
                             isConvertingAtHive = true
