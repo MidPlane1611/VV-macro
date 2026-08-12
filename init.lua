@@ -224,7 +224,6 @@ local function startListeners()
     end)
 end
 
--- Функция поиска токена с его мгновенным удалением из памяти (чтобы не было спама телепортов)
 local function findAndRemoveToken(hrpPos, radius)
     local nearestIndex = nil
     local nearestPos = nil
@@ -342,7 +341,6 @@ startButton.MouseButton1Click:Connect(function()
                     local hrp = char.HumanoidRootPart
                     humanoid = char:FindFirstChildOfClass("Humanoid")
                     
-                    -- Noclip: отключаем коллизии для всех частей тела
                     for _, part in ipairs(char:GetDescendants()) do
                         if part:IsA("BasePart") then part.CanCollide = false end
                     end
@@ -369,31 +367,40 @@ startButton.MouseButton1Click:Connect(function()
                     if settings.Farm == 1 and settings.Convert == 0 then
                         local basePos = FieldData[settings.CurrentField] or Vector3.new(0, 5, 0)
                         
-                        -- Проверка выхода за пределы зоны фарма (> 16 студов) ТОЛЬКО во время фарма (Farm == 1)
-                        if settings.Farm == 1 and settings.Convert == 0 and (hrp.Position - basePos).Magnitude > 16 and not isReturningFromOut then
+                        -- Проверка выхода за пределы зоны фарма (> 20 студов)
+                        if settings.Farm == 1 and settings.Convert == 0 and (hrp.Position - basePos).Magnitude > 20 and not isReturningFromOut then
                             isReturningFromOut = true
                             
-                            -- Телепортируемся на 10 студов ниже под поле
-                            local targetPos = basePos + Vector3.new(0, -10, 0)
+                            -- Телепортируемся на 15 студов ниже под поле (-15)
+                            local currentDownOffset = -15
+                            local targetPos = basePos + Vector3.new(0, currentDownOffset, 0)
                             hrp.CFrame = CFrame.new(targetPos)
                             
-                            -- Создаем клиентскую платформу под ногами
+                            -- Создаем платформу под ногами
                             if not clientPlatform then
                                 clientPlatform = Instance.new("Part")
                                 clientPlatform.Size = Vector3.new(6, 1, 6)
                                 clientPlatform.Position = targetPos - Vector3.new(0, 3, 0)
                                 clientPlatform.Anchored = true
                                 clientPlatform.CanCollide = true
-                                clientPlatform.Transparency = 0.5 -- Сделай 1, если нужна полностью невидимая
+                                clientPlatform.Transparency = 0.5
                                 clientPlatform.BrickColor = BrickColor.new("Bright yellow")
                                 clientPlatform.Parent = Workspace
                             end
                             
-                            -- Ждем 20 секунд
+                            -- Ожидание 20 секунд с проверкой каждую 1 секунду (опускаем ещё на 5 студов ниже при необходимости)
                             local waitTime = 0
                             while waitTime < 20 and settings.Running do
                                 task.wait(1)
                                 waitTime = waitTime + 1
+                                
+                                -- Проверка каждую секунду: если нужно, опускаем ещё на 5 студов ниже
+                                if hrp and clientPlatform then
+                                    currentDownOffset = currentDownOffset - 5
+                                    targetPos = basePos + Vector3.new(0, currentDownOffset, 0)
+                                    hrp.CFrame = CFrame.new(targetPos)
+                                    clientPlatform.Position = targetPos - Vector3.new(0, 3, 0)
+                                end
                             end
                             
                             -- Удаляем платформу перед возвращением
