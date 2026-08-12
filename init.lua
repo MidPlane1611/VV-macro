@@ -268,6 +268,8 @@ startButton.MouseButton1Click:Connect(function()
 
         -- Основной цикл
         task.spawn(function()
+            local isConverting = false -- Флаг защиты от повторного запуска
+
             while settings.Running do
                 local char = LocalPlayer.Character
                 local humanoid = char and char:FindFirstChildOfClass("Humanoid")
@@ -276,6 +278,7 @@ startButton.MouseButton1Click:Connect(function()
                 if not char or not char:FindFirstChild("HumanoidRootPart") or (humanoid and humanoid.Health <= 0) then
                     settings.Farm = 1
                     settings.Convert = 0
+                    isConverting = false
                     task.wait(10)
                     repeat task.wait(0.5)
                         char = LocalPlayer.Character
@@ -299,6 +302,7 @@ startButton.MouseButton1Click:Connect(function()
 
                     -- ФАРМ
                     if settings.Farm == 1 and settings.Convert == 0 then
+                        isConverting = false -- Сбрасываем флаг при фарме
                         local basePos = FieldData[settings.CurrentField] or Vector3.new(0, 5, 0)
                         
                         if (hrp.Position - basePos).Magnitude > 30 then
@@ -324,33 +328,38 @@ startButton.MouseButton1Click:Connect(function()
                             end
                         end
 
-                    -- КОНВЕРТАЦИЯ У УЛЬЯ С ЗАДЕРЖКОЙ 1.5 СЕКУНДЫ
+                    -- КОНВЕРТАЦИЯ У УЛЬЯ (выполнится ровно 1 раз)
                     elseif settings.Farm == 0 and settings.Convert == 1 then
-                        if settings.BackpackMethod == "Reset" then
-                            LocalPlayer.Character:BreakJoints()
-                            task.wait(4)
-                            settings.Farm = 1
-                            settings.Convert = 0
-                        else
-                            local targetHive = HiveCoords[settings.HiveSlot] or HiveCoords[1]
-                            hrp.CFrame = CFrame.new(targetHive + Vector3.new(0, 3, 0))
+                        if not isConverting then
+                            isConverting = true -- Блокируем повторный вход в этот блок
                             
-                            -- Задержка 1.5 секунды перед активацией улья
-                            task.wait(1.5)
-                            
-                            -- Запуск конвертации
-                            pcall(function()
-                                local hiveCommand = ReplicatedStorage:FindFirstChild("Events") and ReplicatedStorage.Events:FindFirstChild("PlayerHiveCommand")
-                                if hiveCommand and hiveCommand:IsA("RemoteEvent") then
-                                    hiveCommand:FireServer("ToggleHoneyMaking")
-                                end
-                            end)
-                            
-                            -- Ждем процесс переработки
-                            task.wait(8)
-                            
-                            settings.Farm = 1
-                            settings.Convert = 0
+                            if settings.BackpackMethod == "Reset" then
+                                LocalPlayer.Character:BreakJoints()
+                                task.wait(4)
+                                settings.Farm = 1
+                                settings.Convert = 0
+                                isConverting = false
+                            else
+                                local targetHive = HiveCoords[settings.HiveSlot] or HiveCoords[1]
+                                hrp.CFrame = CFrame.new(targetHive + Vector3.new(0, 3, 0))
+                                
+                                -- Задержка 1.5 секунды перед активацией улья
+                                task.wait(1.5)
+                                
+                                -- Запуск конвертации строго 1 раз
+                                pcall(function()
+                                    local hiveCommand = ReplicatedStorage:FindFirstChild("Events") and ReplicatedStorage.Events:FindFirstChild("PlayerHiveCommand")
+                                    if hiveCommand and hiveCommand:IsA("RemoteEvent") then
+                                        hiveCommand:FireServer("ToggleHoneyMaking")
+                                    end
+                                end)
+                                
+                                -- Ждем процесс переработки (12 секунд, можно увеличить при необходимости)
+                                task.wait(12)
+                                
+                                settings.Farm = 1
+                                settings.Convert = 0
+                            end
                         end
                     end
                 end
