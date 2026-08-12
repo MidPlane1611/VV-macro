@@ -12,6 +12,7 @@ local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
 local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local VirtualInputManager = game:GetService("VirtualInputManager")
 
 if PlayerGui:FindFirstChild("VVMacroMiniGui") then PlayerGui.VVMacroMiniGui:Destroy() end
 if PlayerGui:FindFirstChild("VVMacroMainGui") then PlayerGui.VVMacroMainGui:Destroy() end
@@ -176,7 +177,6 @@ local function startListeners()
     pcall(function()
         for _, obj in ipairs(ReplicatedStorage:GetDescendants()) do
             if obj:IsA("RemoteEvent") then
-                -- Перехват токенов
                 if obj.Name == "CollectibleEvent" then
                     obj.OnClientEvent:Connect(function(...)
                         local args = {...}
@@ -197,7 +197,6 @@ local function startListeners()
                     end)
                 end
                 
-                -- Перехват оповещения о полном рюкзаке через ReceiveAlert
                 if obj.Name == "ReceiveAlert" then
                     obj.OnClientEvent:Connect(function(...)
                         local args = {...}
@@ -253,7 +252,7 @@ startButton.MouseButton1Click:Connect(function()
         
         startListeners()
 
-        -- Имитация сбора через RemoteEvent
+        -- Сбор инструментов
         task.spawn(function()
             while settings.Running do
                 if settings.Farm == 1 and settings.Convert == 0 then
@@ -268,7 +267,7 @@ startButton.MouseButton1Click:Connect(function()
             end
         end)
 
-        -- Основной цикл макроса
+        -- Основной цикл
         task.spawn(function()
             while settings.Running do
                 local char = LocalPlayer.Character
@@ -299,7 +298,7 @@ startButton.MouseButton1Click:Connect(function()
                         if part:IsA("BasePart") then part.CanCollide = false end
                     end
 
-                    -- ФАРМ ИЛИ КОНВЕРТАЦИЯ
+                    -- ФАРМ
                     if settings.Farm == 1 and settings.Convert == 0 then
                         local basePos = FieldData[settings.CurrentField] or Vector3.new(0, 5, 0)
                         
@@ -326,6 +325,7 @@ startButton.MouseButton1Click:Connect(function()
                             end
                         end
 
+                    -- КОНВЕРТАЦИЯ У УЛЬЯ
                     elseif settings.Farm == 0 and settings.Convert == 1 then
                         if settings.BackpackMethod == "Reset" then
                             LocalPlayer.Character:BreakJoints()
@@ -334,8 +334,21 @@ startButton.MouseButton1Click:Connect(function()
                             settings.Convert = 0
                         else
                             local targetHive = HiveCoords[settings.HiveSlot] or HiveCoords[1]
+                            -- Телепортируемся прямо к улью
                             hrp.CFrame = CFrame.new(targetHive + Vector3.new(0, 3, 0))
-                            task.wait(6) -- Ждем конвертацию у улья
+                            task.wait(0.5)
+                            
+                            -- Имитируем нажатие и удержание клавиши E для активации улья
+                            pcall(function()
+                                VirtualInputManager:SendKeyEvent(true, Enum.KeyCode.E, false, game)
+                                task.wait(0.2)
+                                VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.E, false, game)
+                            end)
+                            
+                            -- Ждем процесс переработки пыльцы в honey (10 секунд)
+                            task.wait(10)
+                            
+                            -- Возвращаемся на поле
                             settings.Farm = 1
                             settings.Convert = 0
                         end
