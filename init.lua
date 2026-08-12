@@ -172,50 +172,27 @@ local FieldData = {
 
 local NetworkTokens = {}
 
-local function startListeners()
+local function startCollectibleListener()
     pcall(function()
         for _, obj in ipairs(ReplicatedStorage:GetDescendants()) do
-            if obj:IsA("RemoteEvent") then
-                if obj.Name == "CollectibleEvent" then
-                    obj.OnClientEvent:Connect(function(...)
-                        local args = {...}
-                        if args[1] and type(args[1]) == "string" and args[1]:lower():find("spawn") then
-                            for i = 2, #args do
-                                local arg = args[i]
-                                if typeof(arg) == "Vector3" then
-                                    table.insert(NetworkTokens, {Pos = arg, Time = tick()})
-                                elseif type(arg) == "table" then
-                                    for _, sub in pairs(arg) do
-                                        if typeof(sub) == "Vector3" then
-                                            table.insert(NetworkTokens, {Pos = sub, Time = tick()})
-                                        end
-                                    end
-                                end
-                            end
-                        end
-                    end)
-                end
-                
-                if obj.Name == "ReceiveAlert" then
-                    obj.OnClientEvent:Connect(function(...)
-                        local args = {...}
-                        for _, arg in ipairs(args) do
-                            if type(arg) == "string" and arg:lower():find("pollen container full") then
-                                getgenv().MacroSettings.Convert = 1
-                                getgenv().MacroSettings.Farm = 0
-                                break
+            if obj.Name == "CollectibleEvent" and obj:IsA("RemoteEvent") then
+                obj.OnClientEvent:Connect(function(...)
+                    local args = {...}
+                    if args[1] and type(args[1]) == "string" and args[1]:lower():find("spawn") then
+                        for i = 2, #args do
+                            local arg = args[i]
+                            if typeof(arg) == "Vector3" then
+                                table.insert(NetworkTokens, {Pos = arg, Time = tick()})
                             elseif type(arg) == "table" then
                                 for _, sub in pairs(arg) do
-                                    if type(sub) == "string" and sub:lower():find("pollen container full") then
-                                        getgenv().MacroSettings.Convert = 1
-                                        getgenv().MacroSettings.Farm = 0
-                                        break
+                                    if typeof(sub) == "Vector3" then
+                                        table.insert(NetworkTokens, {Pos = sub, Time = tick()})
                                     end
                                 end
                             end
                         end
-                    end)
-                end
+                    end
+                end)
             end
         end
     end)
@@ -249,7 +226,7 @@ startButton.MouseButton1Click:Connect(function()
         startButton.Text = "STOP MACRO"
         startButton.BackgroundColor3 = Color3.fromRGB(170, 0, 0)
         
-        startListeners()
+        startCollectibleListener()
 
         -- Сбор инструментов
         task.spawn(function()
@@ -266,9 +243,9 @@ startButton.MouseButton1Click:Connect(function()
             end
         end)
 
-        -- Основной цикл
+        -- Основной цикл макроса
         task.spawn(function()
-            local isConverting = false -- Флаг защиты от повторного запуска
+            local isConvertingAtHive = false
 
             while settings.Running do
                 local char = LocalPlayer.Character
@@ -278,7 +255,7 @@ startButton.MouseButton1Click:Connect(function()
                 if not char or not char:FindFirstChild("HumanoidRootPart") or (humanoid and humanoid.Health <= 0) then
                     settings.Farm = 1
                     settings.Convert = 0
-                    isConverting = false
+                    isConvertingAtHive = false
                     task.wait(10)
                     repeat task.wait(0.5)
                         char = LocalPlayer.Character
@@ -300,9 +277,37 @@ startButton.MouseButton1Click:Connect(function()
                         if part:IsA("BasePart") then part.CanCollide = false end
                     end
 
-                    -- ФАРМ
+                    -- ЧТЕНИЕ ПЫЛЬЦЫ ИЗ UI (Стр / Максимум)
+                    local pollenLabel = nil
+                    for _, desc in ipairs(PlayerGui:GetDescendants()) do
+                        if desc:IsA("TextLabel") and desc.Text:find("/") and desc.Text:match("%d+/%d+") then
+                            pollenLabel = desc
+                            break
+                        end
+                    end
+
+                    if pollenLabel then
+                        local cleanText = pollenLabel.Text:gsub(",", "")
+                        local current, max = cleanText:match("(%d+)%s*/%s*(%d+)")
+                        if current and max then
+                            local currNum, maxNum = tonumber(current), tonumber(max)
+                            if currNum and maxNum then
+                                -- Если рюкзак полон -> Farm = 0, Convert = 1
+                                if currNum >= maxNum and settings.Farm == 1 then
+                                    settings.Farm = 0
+                                    settings.Convert = 1
+                                -- Если пыльца полностью опустошилась (0) и мы конвертировали -> возвращаем Farm = 1, Convert = 0
+                                elseif currNum == 0 and settings.Convert == 1 then
+                                    settings.Farm = 1
+                                    settings.Convert = 0
+                                    isConvertingAtHive = false
+                                end
+                            end
+                        end
+                    end
+
+                    -- 1. ФАРМ (Только если Farm == 1 и Convert == 0)
                     if settings.Farm == 1 and settings.Convert == 0 then
-                        isConverting = false -- Сбрасываем флаг при фарме
                         local basePos = FieldData[settings.CurrentField] or Vector3.new(0, 5, 0)
                         
                         if (hrp.Position - basePos).Magnitude > 30 then
@@ -321,44 +326,32 @@ startButton.MouseButton1Click:Connect(function()
                                 end
                             else
                                 for _ = 1, 5 do
-                                    if not settings.Running or settings.Farm == 0 then break end
+                                    if not settings.Running or settings.Farm == 1 == false or settings.Convert == 1 then break end
                                     humanoid:MoveTo(basePos + Vector3.new(math.random(-12, 12), 0, math.random(-12, 12)))
                                     task.wait(0.5)
                                 end
                             end
                         end
 
-                    -- КОНВЕРТАЦИЯ У УЛЬЯ (выполнится ровно 1 раз)
+                    -- 2. КОНВЕРТАЦИЯ (Только если Convert == 1 и Farm == 0)
                     elseif settings.Farm == 0 and settings.Convert == 1 then
-                        if not isConverting then
-                            isConverting = true -- Блокируем повторный вход в этот блок
+                        if not isConvertingAtHive then
+                            isConvertingAtHive = true
                             
                             if settings.BackpackMethod == "Reset" then
                                 LocalPlayer.Character:BreakJoints()
                                 task.wait(4)
-                                settings.Farm = 1
-                                settings.Convert = 0
-                                isConverting = false
                             else
                                 local targetHive = HiveCoords[settings.HiveSlot] or HiveCoords[1]
                                 hrp.CFrame = CFrame.new(targetHive + Vector3.new(0, 3, 0))
-                                
-                                -- Задержка 1.5 секунды перед активацией улья
                                 task.wait(1.5)
                                 
-                                -- Запуск конвертации строго 1 раз
                                 pcall(function()
                                     local hiveCommand = ReplicatedStorage:FindFirstChild("Events") and ReplicatedStorage.Events:FindFirstChild("PlayerHiveCommand")
                                     if hiveCommand and hiveCommand:IsA("RemoteEvent") then
                                         hiveCommand:FireServer("ToggleHoneyMaking")
                                     end
                                 end)
-                                
-                                -- Ждем процесс переработки (12 секунд, можно увеличить при необходимости)
-                                task.wait(12)
-                                
-                                settings.Farm = 1
-                                settings.Convert = 0
                             end
                         end
                     end
