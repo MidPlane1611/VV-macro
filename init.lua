@@ -220,7 +220,7 @@ local function startListeners()
                 end
             end
         end
-    end)
+    end()
 end
 
 local function findSpawnToken(hrpPos, radius)
@@ -300,6 +300,7 @@ startButton.MouseButton1Click:Connect(function()
         task.spawn(function()
             local isConvertingAtHive = false
             local waitingForReset = false
+            local hasReturnedToField = false
 
             while settings.Running do
                 local char = LocalPlayer.Character
@@ -310,6 +311,7 @@ startButton.MouseButton1Click:Connect(function()
                     settings.Convert = 0
                     isConvertingAtHive = false
                     waitingForReset = false
+                    hasReturnedToField = false
                     task.wait(10)
                     repeat task.wait(0.5)
                         char = LocalPlayer.Character
@@ -345,6 +347,7 @@ startButton.MouseButton1Click:Connect(function()
                                 settings.Convert = 0
                                 isConvertingAtHive = false
                                 waitingForReset = false
+                                hasReturnedToField = false
                             end)
                         end
                     end
@@ -358,8 +361,9 @@ startButton.MouseButton1Click:Connect(function()
                         
                         if humanoid then
                             if settings.FarmType == "Instant Collector" then
-                                local tokenPos = findSpawnToken(basePos, 32)
+                                local tokenPos = findSpawnToken(hrp.Position, 32)
                                 if tokenPos then
+                                    hasReturnedToField = false
                                     local steps = 3
                                     local currentPos = hrp.Position
                                     for i = 1, steps do
@@ -369,10 +373,11 @@ startButton.MouseButton1Click:Connect(function()
                                     end
                                     task.wait(0.075)
                                 else
-                                    if (hrp.Position - basePos).Magnitude > 5 then
+                                    if not hasReturnedToField then
                                         hrp.CFrame = CFrame.new(basePos + Vector3.new(0, 5, 0))
+                                        hasReturnedToField = true
                                     end
-                                    task.wait(0.05)
+                                    task.wait(0.1)
                                 end
                             elseif settings.FarmType == "Token Collector" then
                                 local tokenPos = findSpawnToken(hrp.Position, 20)
