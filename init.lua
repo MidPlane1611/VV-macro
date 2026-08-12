@@ -1,7 +1,7 @@
 getgenv().MacroSettings = {
     Running = false,
     CurrentField = "Dandelion Field",
-    FarmType = "Random",
+    FarmType = "Random", -- Доступны: "Random", "Token Collector", "Instant Collector"
     BackpackMethod = "Convert Hive",
     HiveSlot = 1,
     Farm = 1,
@@ -12,6 +12,8 @@ local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
 local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local RunService = game:GetService("RunService")
+local VirtualInputManager = game:GetService("VirtualInputManager")
 
 if PlayerGui:FindFirstChild("VVMacroMiniGui") then PlayerGui.VVMacroMiniGui:Destroy() end
 if PlayerGui:FindFirstChild("VVMacroMainGui") then PlayerGui.VVMacroMainGui:Destroy() end
@@ -79,7 +81,7 @@ fieldBtn.MouseButton1Click:Connect(function()
     fieldBtn.Text = "Field: " .. fields[fieldIndex]
 end)
 
-local farmTypes = {"Random", "Token Collector"}
+local farmTypes = {"Random", "Token Collector", "Instant Collector"}
 local farmTypeIndex = 1
 
 local farmTypeBtn = Instance.new("TextButton", mainFrame)
@@ -176,7 +178,6 @@ local function startListeners()
     pcall(function()
         for _, obj in ipairs(ReplicatedStorage:GetDescendants()) do
             if obj:IsA("RemoteEvent") then
-                -- 1. Сбор токенов
                 if obj.Name == "CollectibleEvent" then
                     obj.OnClientEvent:Connect(function(...)
                         local args = {...}
@@ -197,7 +198,6 @@ local function startListeners()
                     end)
                 end
                 
-                -- 2. Проверка полного рюкзака через Remote Spy (ReceiveAlert) -> Farm = 0, Convert = 1
                 if obj.Name == "ReceiveAlert" then
                     obj.OnClientEvent:Connect(function(...)
                         local args = {...}
@@ -244,7 +244,6 @@ local function findSpawnToken(hrpPos, radius)
     return nearestPos
 end
 
--- Функция проверки Pollen через Players -> LocalPlayer -> CoreStats -> Pollen -> Value
 local function getCoreStatsPollen()
     local curr = -1
     pcall(function()
@@ -259,6 +258,23 @@ local function getCoreStatsPollen()
     return curr
 end
 
+-- Поток для симуляции 20 кликов в секунду (для Instant Collector)
+task.spawn(function()
+    while true do
+        local settings = getgenv().MacroSettings
+        if settings.Running and settings.FarmType == "Instant Collector" and settings.Farm == 1 and settings.Convert == 0 then
+            pcall(function()
+                VirtualInputManager:SendMouseButtonEvent(0, 0, 0, true, LocalPlayer, 0)
+                task.wait(0.01)
+                VirtualInputManager:SendMouseButtonEvent(0, 0, 0, false, LocalPlayer, 0)
+            end)
+            task.wait(1 / 20) -- Ровно 20 кликов в секунду
+        else
+            task.wait(0.1)
+        end
+    end
+end)
+
 startButton.MouseButton1Click:Connect(function()
     local settings = getgenv().MacroSettings
     settings.Running = not settings.Running
@@ -268,10 +284,10 @@ startButton.MouseButton1Click:Connect(function()
         
         startListeners()
 
-        -- Сбор инструментов
+        -- Сбор инструментов для обычных режимов
         task.spawn(function()
             while settings.Running do
-                if settings.Farm == 1 and settings.Convert == 0 then
+                if settings.Farm == 1 and settings.Convert == 0 and settings.FarmType ~= "Instant Collector" then
                     pcall(function()
                         local toolEvent = ReplicatedStorage:FindFirstChild("Events") and ReplicatedStorage.Events:FindFirstChild("ToolCollect")
                         if toolEvent and toolEvent:IsA("RemoteEvent") then
@@ -292,7 +308,6 @@ startButton.MouseButton1Click:Connect(function()
                 local char = LocalPlayer.Character
                 local humanoid = char and char:FindFirstChildOfClass("Humanoid")
                 
-                -- Детект смерти
                 if not char or not char:FindFirstChild("HumanoidRootPart") or (humanoid and humanoid.Health <= 0) then
                     settings.Farm = 1
                     settings.Convert = 0
@@ -319,15 +334,12 @@ startButton.MouseButton1Click:Connect(function()
                         if part:IsA("BasePart") then part.CanCollide = false end
                     end
 
-                    -- ЕСЛИ КОНВЕРТИРУЕМ (Convert == 1), ПРОВЕРЯЕМ Pollen через CoreStats == 0
                     if settings.Convert == 1 and not waitingForReset then
                         local currPollen = getCoreStatsPollen()
                         if currPollen ~= -1 and currPollen <= 0 then
                             waitingForReset = true
                             task.spawn(function()
-                                task.wait(5) -- Ждем 5 секунд после того, как Pollen стал равен 0
-                                
-                                -- Телепортируем обратно на поле перед сменой флагов
+                                task.wait(5)
                                 local basePos = FieldData[settings.CurrentField] or Vector3.new(0, 5, 0)
                                 hrp.CFrame = CFrame.new(basePos + Vector3.new(0, 5, 0))
                                 task.wait(0.5)
@@ -340,16 +352,36 @@ startButton.MouseButton1Click:Connect(function()
                         end
                     end
 
-                    -- 1. ФАРМ (Строго когда Farm == 1 и Convert == 0)
                     if settings.Farm == 1 and settings.Convert == 0 then
                         local basePos = FieldData[settings.CurrentField] or Vector3.new(0, 5, 0)
                         
-                        if (hrp.Position - basePos).Magnitude > 30 then
+                        if (hrp.Position - basePos).Magnitude > 60 and settings.FarmType ~= "Instant Collector" then
                             hrp.CFrame = CFrame.new(basePos + Vector3.new(0, 5, 0))
                         end
                         
                         if humanoid then
-                            if settings.FarmType == "Token Collector" then
+                            if settings.FarmType == "Instant Collector" then
+                                -- Радиус 32x32 студа
+                                local tokenPos = findSpawnToken(basePos, 32)
+                                if tokenPos then
+                                    -- Мгновенный полет на CFrame к токену
+                                    local steps = 3
+                                    local currentPos = hrp.Position
+                                    for i = 1, steps do
+                                        if not settings.Running then break end
+                                        hrp.CFrame = CFrame.new(currentPos:Lerp(tokenPos + Vector3.new(0, 3, 0), i / steps))
+                                        RunService.Heartbeat:Wait()
+                                    end
+                                    -- Ждем 75 мс на точке токена
+                                    task.wait(0.075)
+                                else
+                                    -- Если токенов нет — возвращаемся на центр поля и ждем
+                                    if (hrp.Position - basePos).Magnitude > 5 then
+                                        hrp.CFrame = CFrame.new(basePos + Vector3.new(0, 5, 0))
+                                    end
+                                    task.wait(0.05)
+                                end
+                            elseif settings.FarmType == "Token Collector" then
                                 local tokenPos = findSpawnToken(hrp.Position, 20)
                                 if tokenPos then
                                     humanoid:MoveTo(tokenPos)
@@ -367,7 +399,6 @@ startButton.MouseButton1Click:Connect(function()
                             end
                         end
 
-                    -- 2. КОНВЕРТАЦИЯ (Строго когда Farm == 0 и Convert == 1)
                     elseif settings.Farm == 0 and settings.Convert == 1 then
                         if not isConvertingAtHive then
                             isConvertingAtHive = true
@@ -390,7 +421,7 @@ startButton.MouseButton1Click:Connect(function()
                         end
                     end
                 end
-                task.wait(0.1)
+                task.wait(0.02)
             end
         end)
     else
