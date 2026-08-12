@@ -10,6 +10,7 @@ getgenv().MacroSettings = {
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
 local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
+local VirtualUser = game:GetService("VirtualUser")
 
 if PlayerGui:FindFirstChild("VVMacroMiniGui") then
     PlayerGui.VVMacroMiniGui:Destroy()
@@ -247,6 +248,21 @@ startButton.MouseButton1Click:Connect(function()
             startButton.Text = "STOP MACRO"
             startButton.BackgroundColor3 = Color3.fromRGB(170, 0, 0)
             
+            -- Отдельный поток для автокликера (кликает каждые 0.05 сек, когда Farm = 1)
+            task.spawn(function()
+                while settings.Running do
+                    if settings.Farm == 1 and settings.Convert == 0 then
+                        pcall(function()
+                            VirtualUser:Button1Down(Vector2.new(0,0))
+                            task.wait(0.01)
+                            VirtualUser:Button1Up(Vector2.new(0,0))
+                        end)
+                    end
+                    task.wait(0.05)
+                end
+            end)
+
+            -- Основной поток макроса (фарм, детекция и телепорты)
             task.spawn(function()
                 while settings.Running do
                     local char = LocalPlayer.Character
@@ -254,38 +270,51 @@ startButton.MouseButton1Click:Connect(function()
                         local hrp = char.HumanoidRootPart
                         local humanoid = char:FindFirstChildOfClass("Humanoid")
                         
-                        -- Отключаем коллизию персонажа
                         for _, part in ipairs(char:GetDescendants()) do
                             if part:IsA("BasePart") then
                                 part.CanCollide = false
                             end
                         end
 
-                        -- Детект заполненности рюкзака
-                        local pollenText = PlayerGui:FindFirstChild("ScreenGui") and PlayerGui.ScreenGui:FindFirstChild("Stats") and PlayerGui.ScreenGui.Stats:FindFirstChild("Pollen")
-                        if pollenText then
-                            local current, max = pollenText.Text:match("(%d+)/(%d+)")
-                            if current and max then
-                                if tonumber(current) >= tonumber(max) then
-                                    settings.Farm = 0
-                                    settings.Convert = 1
-                                elseif tonumber(current) == 0 then
-                                    settings.Farm = 1
-                                    settings.Convert = 0
+                        local screenGui = PlayerGui:FindFirstChild("ScreenGui")
+                        local pollenLabel = nil
+                        
+                        if screenGui then
+                            for _, descendant in ipairs(screenGui:GetDescendants()) do
+                                if descendant:IsA("TextLabel") and descendant.Text:find("/") and (descendant.Text:lower():find("pollen") or descendant.Text:find("%d+/%d+")) then
+                                    pollenLabel = descendant
+                                    break
                                 end
                             end
                         end
 
-                        -- РЕЖИМ ФАРМА (Farm = 1, Convert = 0)
+                        if pollenLabel then
+                            local cleanText = pollenLabel.Text:gsub(",", "")
+                            local current, max = cleanText:match("(%d+)%s*/%s*(%d+)")
+                            
+                            if current and max then
+                                local currNum = tonumber(current)
+                                local maxNum = tonumber(max)
+                                
+                                if currNum and maxNum then
+                                    if currNum >= maxNum then
+                                        settings.Farm = 0
+                                        settings.Convert = 1
+                                    elseif currNum == 0 then
+                                        settings.Farm = 1
+                                        settings.Convert = 0
+                                    end
+                                end
+                            end
+                        end
+
                         if settings.Farm == 1 and settings.Convert == 0 then
                             local basePos = FieldData[settings.CurrentField] or Vector3.new(0, 5, 0)
                             
-                            -- Телепорт на поле только если мы далеко
                             if (hrp.Position - basePos).Magnitude > 25 then
                                 hrp.CFrame = CFrame.new(basePos + Vector3.new(0, 5, 0))
                             end
                             
-                            -- Ходим по полю
                             if humanoid then
                                 if settings.FarmType == "Random" then
                                     for _ = 1, 10 do
@@ -304,11 +333,8 @@ startButton.MouseButton1Click:Connect(function()
                                 end
                             end
 
-                        -- РЕЖИМ КОНВЕРТАЦИИ (Farm = 0, Convert = 1)
                         elseif settings.Farm == 0 and settings.Convert == 1 then
                             local targetHive = HiveCoords[settings.HiveSlot] or HiveCoords[1]
-                            
-                            -- Телепорт к улью
                             hrp.CFrame = CFrame.new(targetHive)
                             task.wait(3)
                         end
