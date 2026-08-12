@@ -172,27 +172,52 @@ local FieldData = {
 
 local NetworkTokens = {}
 
-local function startCollectibleListener()
+local function startListeners()
     pcall(function()
         for _, obj in ipairs(ReplicatedStorage:GetDescendants()) do
-            if obj.Name == "CollectibleEvent" and obj:IsA("RemoteEvent") then
-                obj.OnClientEvent:Connect(function(...)
-                    local args = {...}
-                    if args[1] and type(args[1]) == "string" and args[1]:lower():find("spawn") then
-                        for i = 2, #args do
-                            local arg = args[i]
-                            if typeof(arg) == "Vector3" then
-                                table.insert(NetworkTokens, {Pos = arg, Time = tick()})
-                            elseif type(arg) == "table" then
-                                for _, sub in pairs(arg) do
-                                    if typeof(sub) == "Vector3" then
-                                        table.insert(NetworkTokens, {Pos = sub, Time = tick()})
+            if obj:IsA("RemoteEvent") then
+                -- Перехват токенов
+                if obj.Name == "CollectibleEvent" then
+                    obj.OnClientEvent:Connect(function(...)
+                        local args = {...}
+                        if args[1] and type(args[1]) == "string" and args[1]:lower():find("spawn") then
+                            for i = 2, #args do
+                                local arg = args[i]
+                                if typeof(arg) == "Vector3" then
+                                    table.insert(NetworkTokens, {Pos = arg, Time = tick()})
+                                elseif type(arg) == "table" then
+                                    for _, sub in pairs(arg) do
+                                        if typeof(sub) == "Vector3" then
+                                            table.insert(NetworkTokens, {Pos = sub, Time = tick()})
+                                        end
                                     end
                                 end
                             end
                         end
-                    end
-                end)
+                    end)
+                end
+                
+                -- Перехват оповещения о полном рюкзаке через ReceiveAlert
+                if obj.Name == "ReceiveAlert" then
+                    obj.OnClientEvent:Connect(function(...)
+                        local args = {...}
+                        for _, arg in ipairs(args) do
+                            if type(arg) == "string" and arg:lower():find("pollen container full") then
+                                getgenv().MacroSettings.Convert = 1
+                                getgenv().MacroSettings.Farm = 0
+                                break
+                            elseif type(arg) == "table" then
+                                for _, sub in pairs(arg) do
+                                    if type(sub) == "string" and sub:lower():find("pollen container full") then
+                                        getgenv().MacroSettings.Convert = 1
+                                        getgenv().MacroSettings.Farm = 0
+                                        break
+                                    end
+                                end
+                            end
+                        end
+                    end)
+                end
             end
         end
     end)
@@ -226,9 +251,9 @@ startButton.MouseButton1Click:Connect(function()
         startButton.Text = "STOP MACRO"
         startButton.BackgroundColor3 = Color3.fromRGB(170, 0, 0)
         
-        startCollectibleListener()
+        startListeners()
 
-        -- Имитация сбора через твой RemoteEvent
+        -- Имитация сбора через RemoteEvent
         task.spawn(function()
             while settings.Running do
                 if settings.Farm == 1 and settings.Convert == 0 then
@@ -247,38 +272,31 @@ startButton.MouseButton1Click:Connect(function()
         task.spawn(function()
             while settings.Running do
                 local char = LocalPlayer.Character
+                local humanoid = char and char:FindFirstChildOfClass("Humanoid")
+                
+                -- Детект смерти
+                if not char or not char:FindFirstChild("HumanoidRootPart") or (humanoid and humanoid.Health <= 0) then
+                    settings.Farm = 1
+                    settings.Convert = 0
+                    task.wait(10)
+                    repeat task.wait(0.5)
+                        char = LocalPlayer.Character
+                    until char and char:FindFirstChild("HumanoidRootPart") and char:FindFirstChildOfClass("Humanoid") and char:FindFirstChildOfClass("Humanoid").Health > 0
+                    
+                    local hrp = char:FindFirstChild("HumanoidRootPart")
+                    local basePos = FieldData[settings.CurrentField] or Vector3.new(0, 5, 0)
+                    if hrp then
+                        hrp.CFrame = CFrame.new(basePos + Vector3.new(0, 5, 0))
+                    end
+                    task.wait(1)
+                end
+
                 if char and char:FindFirstChild("HumanoidRootPart") then
                     local hrp = char.HumanoidRootPart
-                    local humanoid = char:FindFirstChildOfClass("Humanoid")
+                    humanoid = char:FindFirstChildOfClass("Humanoid")
                     
                     for _, part in ipairs(char:GetDescendants()) do
                         if part:IsA("BasePart") then part.CanCollide = false end
-                    end
-
-                    -- Детект заполненности рюкзака
-                    local pollenLabel = nil
-                    for _, desc in ipairs(PlayerGui:GetDescendants()) do
-                        if desc:IsA("TextLabel") and desc.Text:find("/") and (desc.Text:lower():find("pollen") or desc.Text:find("%d+/%d+")) then
-                            pollenLabel = desc
-                            break
-                        end
-                    end
-
-                    if pollenLabel then
-                        local cleanText = pollenLabel.Text:gsub(",", "")
-                        local current, max = cleanText:match("(%d+)%s*/%s*(%d+)")
-                        if current and max then
-                            local currNum, maxNum = tonumber(current), tonumber(max)
-                            if currNum and maxNum then
-                                if currNum >= maxNum then
-                                    settings.Farm = 0
-                                    settings.Convert = 1
-                                elseif currNum == 0 then
-                                    settings.Farm = 1
-                                    settings.Convert = 0
-                                end
-                            end
-                        end
                     end
 
                     -- ФАРМ ИЛИ КОНВЕРТАЦИЯ
@@ -312,10 +330,14 @@ startButton.MouseButton1Click:Connect(function()
                         if settings.BackpackMethod == "Reset" then
                             LocalPlayer.Character:BreakJoints()
                             task.wait(4)
+                            settings.Farm = 1
+                            settings.Convert = 0
                         else
                             local targetHive = HiveCoords[settings.HiveSlot] or HiveCoords[1]
                             hrp.CFrame = CFrame.new(targetHive + Vector3.new(0, 3, 0))
-                            task.wait(3)
+                            task.wait(6) -- Ждем конвертацию у улья
+                            settings.Farm = 1
+                            settings.Convert = 0
                         end
                     end
                 end
