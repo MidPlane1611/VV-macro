@@ -12,7 +12,6 @@ local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
 local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local Workspace = game:GetService("Workspace")
 
 if PlayerGui:FindFirstChild("VVMacroMiniGui") then PlayerGui.VVMacroMiniGui:Destroy() end
 if PlayerGui:FindFirstChild("VVMacroMainGui") then PlayerGui.VVMacroMainGui:Destroy() end
@@ -198,7 +197,7 @@ local function startListeners()
                     end)
                 end
                 
-                -- 2. Проверка полного рюкзака (переход к улью): Farm становится 0, Convert становится 1
+                -- 2. Проверка полного рюкзака через Remote Spy (ReceiveAlert) -> Farm = 0, Convert = 1
                 if obj.Name == "ReceiveAlert" then
                     obj.OnClientEvent:Connect(function(...)
                         local args = {...}
@@ -245,32 +244,15 @@ local function findSpawnToken(hrpPos, radius)
     return nearestPos
 end
 
--- Функция проверки текущего значения Pollen в Workspace
-local function getWorkspacePollenValue()
+-- Функция проверки Pollen через Players -> LocalPlayer -> CoreStats -> Pollen -> Value
+local function getCoreStatsPollen()
     local curr = -1
     pcall(function()
-        local hivesFolder = Workspace:FindFirstChild("Honeycombs") or Workspace:FindFirstChild("Hives")
-        if hivesFolder then
-            for _, hive in ipairs(hivesFolder:GetChildren()) do
-                local owner = hive:FindFirstChild("Owner")
-                if owner and owner.Value == LocalPlayer then
-                    local pollenVal = hive:FindFirstChild("Pollen") or hive:FindFirstChild("TotalPollen")
-                    if pollenVal then
-                        curr = pollenVal.Value
-                        break
-                    end
-                end
-            end
-        end
-        
-        if curr == -1 then
-            for _, obj in ipairs(Workspace:GetDescendants()) do
-                if obj.Name == "Pollen" and (obj:IsA("NumberValue") or obj:IsA("IntValue")) then
-                    if obj.Parent and (obj.Parent.Name == LocalPlayer.Name or (obj.Parent:FindFirstChild("Owner") and obj.Parent.Owner.Value == LocalPlayer)) then
-                        curr = obj.Value
-                        break
-                    end
-                end
+        local coreStats = LocalPlayer:FindFirstChild("CoreStats")
+        if coreStats then
+            local pollenObj = coreStats:FindFirstChild("Pollen")
+            if pollenObj then
+                curr = pollenObj.Value
             end
         end
     end)
@@ -337,13 +319,19 @@ startButton.MouseButton1Click:Connect(function()
                         if part:IsA("BasePart") then part.CanCollide = false end
                     end
 
-                    -- ЕСЛИ МЫ КОНВЕРТИРУЕМ (Convert == 1), ПРОВЕРЯЕМ Pollen через Workspace == 0
+                    -- ЕСЛИ КОНВЕРТИРУЕМ (Convert == 1), ПРОВЕРЯЕМ Pollen через CoreStats == 0
                     if settings.Convert == 1 and not waitingForReset then
-                        local currPollen = getWorkspacePollenValue()
-                        if currPollen == 0 then
+                        local currPollen = getCoreStatsPollen()
+                        if currPollen ~= -1 and currPollen <= 0 then
                             waitingForReset = true
                             task.spawn(function()
-                                task.wait(5) -- Ждем 5 секунд после того, как Pollen стал равным 0
+                                task.wait(5) -- Ждем 5 секунд после того, как Pollen стал равен 0
+                                
+                                -- Телепортируем обратно на поле перед сменой флагов
+                                local basePos = FieldData[settings.CurrentField] or Vector3.new(0, 5, 0)
+                                hrp.CFrame = CFrame.new(basePos + Vector3.new(0, 5, 0))
+                                task.wait(0.5)
+                                
                                 settings.Farm = 1
                                 settings.Convert = 0
                                 isConvertingAtHive = false
