@@ -45,14 +45,16 @@ uiStroke.Parent = toggleButton
 local mainGui = Instance.new("ScreenGui")
 mainGui.Name = "VVMacroMainGui"
 mainGui.ResetOnSpawn = false
+mainGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 mainGui.Parent = PlayerGui
 
 local mainFrame = Instance.new("Frame")
 mainFrame.Name = "MainFrame"
-mainFrame.Size = UDim2.new(0, 320, 0, 380)
-mainFrame.Position = UDim2.new(0.5, -160, 0.5, -190)
+mainFrame.Size = UDim2.new(0, 300, 0, 260)
+mainFrame.Position = UDim2.new(0.5, -150, 0.5, -130)
 mainFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
 mainFrame.Visible = false
+mainFrame.ZIndex = 10
 mainFrame.Parent = mainGui
 
 local mainCorner = Instance.new("UICorner")
@@ -71,6 +73,7 @@ titleLabel.Text = "VV MACRO"
 titleLabel.TextColor3 = Color3.fromRGB(255, 215, 0)
 titleLabel.TextSize = 16
 titleLabel.Font = Enum.Font.GothamBold
+titleLabel.ZIndex = 11
 titleLabel.Parent = mainFrame
 
 local closeButton = Instance.new("TextButton")
@@ -81,6 +84,7 @@ closeButton.Text = "X"
 closeButton.TextColor3 = Color3.fromRGB(200, 200, 200)
 closeButton.TextSize = 16
 closeButton.Font = Enum.Font.GothamBold
+closeButton.ZIndex = 11
 closeButton.Parent = mainFrame
 
 closeButton.MouseButton1Click:Connect(function()
@@ -88,28 +92,30 @@ closeButton.MouseButton1Click:Connect(function()
 end)
 
 local fieldLabel = Instance.new("TextLabel")
-fieldLabel.Size = UDim2.new(0.9, 0, 0, 30)
-fieldLabel.Position = UDim2.new(0.05, 0, 0.15, 0)
+fieldLabel.Size = UDim2.new(0.9, 0, 0, 25)
+fieldLabel.Position = UDim2.new(0.05, 0, 0.2, 0)
 fieldLabel.BackgroundTransparency = 1
 fieldLabel.Text = "Field: Dandelion Field"
 fieldLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
 fieldLabel.TextSize = 14
 fieldLabel.Font = Enum.Font.Gotham
 fieldLabel.TextXAlignment = Enum.TextXAlignment.Left
+fieldLabel.ZIndex = 11
 fieldLabel.Parent = mainFrame
 
 local changeFieldBtn = Instance.new("TextButton")
-changeFieldBtn.Size = UDim2.new(0.9, 0, 0, 35)
-changeFieldBtn.Position = UDim2.new(0.05, 0, 0.25, 0)
+changeFieldBtn.Size = UDim2.new(0.9, 0, 0, 40)
+changeFieldBtn.Position = UDim2.new(0.05, 0, 0.32, 0)
 changeFieldBtn.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
-changeFieldBtn.Text = "Change Field (Dandelion)"
+changeFieldBtn.Text = "Change Field"
 changeFieldBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-changeFieldBtn.TextSize = 13
+changeFieldBtn.TextSize = 14
 changeFieldBtn.Font = Enum.Font.Gotham
+changeFieldBtn.ZIndex = 11
 changeFieldBtn.Parent = mainFrame
 
 local fieldCorner = Instance.new("UICorner")
-fieldCorner.CornerRadius = UDim.new(0, 6)
+fieldCorner.CornerRadius = UDim.new(0, 8)
 fieldCorner.Parent = changeFieldBtn
 
 local fields = {"Dandelion Field", "Sunflower Field", "Mushroom Field"}
@@ -120,17 +126,17 @@ changeFieldBtn.MouseButton1Click:Connect(function()
     local newField = fields[fieldIndex]
     getgenv().MacroSettings.CurrentField = newField
     fieldLabel.Text = "Field: " .. newField
-    changeFieldBtn.Text = "Change Field (" .. newField .. ")"
 end)
 
 local startButton = Instance.new("TextButton")
 startButton.Size = UDim2.new(0.9, 0, 0, 45)
-startButton.Position = UDim2.new(0.05, 0, 0.75, 0)
+startButton.Position = UDim2.new(0.05, 0, 0.65, 0)
 startButton.BackgroundColor3 = Color3.fromRGB(0, 170, 0)
 startButton.Text = "START MACRO"
 startButton.TextColor3 = Color3.fromRGB(255, 255, 255)
 startButton.TextSize = 14
 startButton.Font = Enum.Font.GothamBold
+startButton.ZIndex = 11
 startButton.Parent = mainFrame
 
 local btnCorner = Instance.new("UICorner")
