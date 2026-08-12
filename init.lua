@@ -12,7 +12,6 @@ local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
 local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local VirtualInputManager = game:GetService("VirtualInputManager")
 
 if PlayerGui:FindFirstChild("VVMacroMiniGui") then PlayerGui.VVMacroMiniGui:Destroy() end
 if PlayerGui:FindFirstChild("VVMacroMainGui") then PlayerGui.VVMacroMainGui:Destroy() end
@@ -325,7 +324,7 @@ startButton.MouseButton1Click:Connect(function()
                             end
                         end
 
-                    -- КОНВЕРТАЦИЯ У УЛЬЯ
+                    -- КОНВЕРТАЦИЯ У УЛЬЯ С ЗАДЕРЖКОЙ 1.5 СЕКУНДЫ
                     elseif settings.Farm == 0 and settings.Convert == 1 then
                         if settings.BackpackMethod == "Reset" then
                             LocalPlayer.Character:BreakJoints()
@@ -334,21 +333,22 @@ startButton.MouseButton1Click:Connect(function()
                             settings.Convert = 0
                         else
                             local targetHive = HiveCoords[settings.HiveSlot] or HiveCoords[1]
-                            -- Телепортируемся прямо к улью
                             hrp.CFrame = CFrame.new(targetHive + Vector3.new(0, 3, 0))
-                            task.wait(0.5)
                             
-                            -- Имитируем нажатие и удержание клавиши E для активации улья
+                            -- Задержка 1.5 секунды перед активацией улья
+                            task.wait(1.5)
+                            
+                            -- Запуск конвертации
                             pcall(function()
-                                VirtualInputManager:SendKeyEvent(true, Enum.KeyCode.E, false, game)
-                                task.wait(0.2)
-                                VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.E, false, game)
+                                local hiveCommand = ReplicatedStorage:FindFirstChild("Events") and ReplicatedStorage.Events:FindFirstChild("PlayerHiveCommand")
+                                if hiveCommand and hiveCommand:IsA("RemoteEvent") then
+                                    hiveCommand:FireServer("ToggleHoneyMaking")
+                                end
                             end)
                             
-                            -- Ждем процесс переработки пыльцы в honey (10 секунд)
-                            task.wait(10)
+                            -- Ждем процесс переработки
+                            task.wait(8)
                             
-                            -- Возвращаемся на поле
                             settings.Farm = 1
                             settings.Convert = 0
                         end
