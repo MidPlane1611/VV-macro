@@ -1,76 +1,75 @@
--- [[ BEE SWARM ULTIMATE MACRO - MAIN.LUA ]]
--- Modular Architecture Loader with Auto-Detection
+-- [[ BEE SWARM ULTIMATE MACRO - MAIN LOADER ]]
+-- Coordinates all modules and runs the core background loop
 
-local HttpService = game:GetService("HttpService")
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
 
--- Базовые настройки макроса
+print("[Main] Initializing Bee Swarm Ultimate Macro...")
+
+-- 1. Создаем глобальную таблицу настроек и состояния макроса
 getgenv().MacroSettings = {
     Running = true,
-    CurrentState = "Initializing...",
+    CurrentField = "Pine Tree Field",
     PollenCurrent = 0,
     PollenMax = 1080640,
     BackpackFull = false,
-    CurrentField = "Pine Tree Field",
-    WebhookUrl = ""
+    BlackScreen = false,
+    CurrentState = "Initializing...",
+    WebhookUrl = "",
+    Priorities = {
+        Gathering = true,
+        AutoDispenser = true,
+        Boosting = true
+    }
 }
 
-print("[Macro] Initializing core systems...")
-
--- Автоматическое определение GitHub-пользователя (если ник в Roblox совпадает с GitHub)
--- Если твой ник на GitHub отличается, замени LocalPlayer.Name на "ТвойНикНаGitHub" в кавычках
-local GITHUB_USER = LocalPlayer.Name 
-local REPO_NAME = "bee-swarm-macro"
-
-local BASE_URL = string.format("https://raw.githubusercontent.com/%s/%s/main/src/modules/", GITHUB_USER, REPO_NAME)
-
--- Безопасная загрузка модулей
-local success, GUI = pcall(function()
-    return loadstring(game:HttpGet(BASE_URL .. "gui.lua"))()
-end)
-
-local successLogic, Logic = pcall(function()
-    return loadstring(game:HttpGet(BASE_URL .. "logic.lua"))()
-end)
-
-local successWebhooks, Webhooks = pcall(function()
-    return loadstring(game:HttpGet(BASE_URL .. "webhooks.lua"))()
-end)
-
-local successUtils, Utils = pcall(function()
-    return loadstring(game:HttpGet(BASE_URL .. "utils.lua"))()
-end)
-
--- Инициализация интерфейса
-if success and GUI then
-    print("[Macro] GUI Module Loaded Successfully.")
-    GUI:Setup()
-else
-    warn("[Macro] Failed to load GUI module!")
+-- 2. Функция безопасной загрузки модулей с твоего GitHub
+local function LoadModule(moduleName)
+    local owner = LocalPlayer.Name -- Автоматически подставляет твой ник на GitHub
+    local url = string.format("https://raw.githubusercontent.com/%s/bee-swarm-macro/main/src/modules/%s.lua", owner, moduleName)
+    
+    local success, result = pcall(function()
+        return loadstring(game:HttpGet(url))()
+    end)
+    
+    if success and result then
+        print(string.format("[Main] Module '%s' successfully loaded!", moduleName))
+        return result
+    else
+        warn(string.format("[Main] Failed to load module '%s': %s", moduleName, tostring(result)))
+        return nil
+    end
 end
 
--- Отправка стартового уведомления в Discord
-if successWebhooks and Webhooks then
-    print("[Macro] Webhook Module Loaded Successfully.")
-    Webhooks:Send("🚀 Macro successfully loaded and initialized on a new server! Hive claimed.")
+-- 3. Загружаем остальные компоненты макроса
+local UtilsModule = LoadModule("utils")
+local WebhookModule = LoadModule("webhooks")
+local LogicModule = LoadModule("logic")
+local GuiModule = LoadModule("gui")
+
+-- 4. Инициализация графического интерфейса
+if GuiModule and type(GuiModule.Setup) == "function" then
+    pcall(function()
+        GuiModule:Setup()
+    end)
 end
 
--- Основной цикл работы макроса (каждые 5 секунд)
+-- 5. Главный фоновый цикл макроса (работает пока Running = true)
 task.spawn(function()
-    while task.wait(5) do
-        if MacroSettings.Running then
-            -- Динамическое обновление статуса в Discord
-            if Webhooks then
-                Webhooks:UpdateStatus()
-            end
+    while task.wait(1) do
+        local settings = getgenv().MacroSettings
+        if settings and settings.Running then
             
-            -- Выполнение логики (приоритеты: Диспенсеры -> Бусты -> Фарм)
-            if Logic then
-                Logic:RunQueue()
+            -- Выполняем основную логику из модуля logic.lua
+            if LogicModule and type(LogicModule.RunQueue) == "function" then
+                pcall(function()
+                    LogicModule:RunQueue()
+                end)
             end
+
         end
     end
+    print("[Main] Macro background loop stopped.")
 end)
 
-print("[Macro] Main script fully executed!")
+print("[Main] Macro fully loaded and operational!")
