@@ -87,9 +87,45 @@ closeButton.MouseButton1Click:Connect(function()
     mainFrame.Visible = false
 end)
 
+local fieldLabel = Instance.new("TextLabel")
+fieldLabel.Size = UDim2.new(0.9, 0, 0, 30)
+fieldLabel.Position = UDim2.new(0.05, 0, 0.15, 0)
+fieldLabel.BackgroundTransparency = 1
+fieldLabel.Text = "Field: Dandelion Field"
+fieldLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+fieldLabel.TextSize = 14
+fieldLabel.Font = Enum.Font.Gotham
+fieldLabel.TextXAlignment = Enum.TextXAlignment.Left
+fieldLabel.Parent = mainFrame
+
+local changeFieldBtn = Instance.new("TextButton")
+changeFieldBtn.Size = UDim2.new(0.9, 0, 0, 35)
+changeFieldBtn.Position = UDim2.new(0.05, 0, 0.25, 0)
+changeFieldBtn.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+changeFieldBtn.Text = "Change Field (Dandelion)"
+changeFieldBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+changeFieldBtn.TextSize = 13
+changeFieldBtn.Font = Enum.Font.Gotham
+changeFieldBtn.Parent = mainFrame
+
+local fieldCorner = Instance.new("UICorner")
+fieldCorner.CornerRadius = UDim.new(0, 6)
+fieldCorner.Parent = changeFieldBtn
+
+local fields = {"Dandelion Field", "Sunflower Field", "Mushroom Field"}
+local fieldIndex = 1
+
+changeFieldBtn.MouseButton1Click:Connect(function()
+    fieldIndex = fieldIndex % #fields + 1
+    local newField = fields[fieldIndex]
+    getgenv().MacroSettings.CurrentField = newField
+    fieldLabel.Text = "Field: " .. newField
+    changeFieldBtn.Text = "Change Field (" .. newField .. ")"
+end)
+
 local startButton = Instance.new("TextButton")
 startButton.Size = UDim2.new(0.9, 0, 0, 45)
-startButton.Position = UDim2.new(0.05, 0, 0.8, 0)
+startButton.Position = UDim2.new(0.05, 0, 0.75, 0)
 startButton.BackgroundColor3 = Color3.fromRGB(0, 170, 0)
 startButton.Text = "START MACRO"
 startButton.TextColor3 = Color3.fromRGB(255, 255, 255)
@@ -114,7 +150,9 @@ startButton.MouseButton1Click:Connect(function()
             startButton.BackgroundColor3 = Color3.fromRGB(170, 0, 0)
             task.spawn(function()
                 local FieldData = {
-                    ["Dandelion Field"] = Vector3.new(-75, 4, 185)
+                    ["Dandelion Field"] = Vector3.new(-75, 4, 185),
+                    ["Sunflower Field"] = Vector3.new(-200, 4, 160),
+                    ["Mushroom Field"] = Vector3.new(-105, 4, 45)
                 }
                 while settings.Running do
                     local char = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
