@@ -2,8 +2,9 @@ getgenv().MacroSettings = {
     Running = false,
     CurrentField = "Dandelion Field",
     FarmType = "Random",
-    BackpackMethod = "Convert Hive",
-    HiveSlot = 1
+    HiveSlot = 1,
+    Farm = 1,
+    Convert = 0
 }
 
 local Players = game:GetService("Players")
@@ -210,6 +211,34 @@ toggleButton.MouseButton1Click:Connect(function()
     mainFrame.Visible = not mainFrame.Visible
 end)
 
+local HiveCoords = {
+    [1] = Vector3.new(-187, 6, 331),
+    [2] = Vector3.new(-150, 6, 331),
+    [3] = Vector3.new(-113, 6, 331),
+    [4] = Vector3.new(-77, 6, 331),
+    [5] = Vector3.new(-40, 6, 331),
+    [6] = Vector3.new(-3, 6, 331)
+}
+
+local FieldData = {
+    ["Dandelion Field"] = Vector3.new(-75, 4, 185),
+    ["Sunflower Field"] = Vector3.new(-200, 4, 160),
+    ["Mushroom Field"] = Vector3.new(-105, 4, 45),
+    ["Blue Flower Field"] = Vector3.new(115, 4, 130),
+    ["Clover Field"] = Vector3.new(170, 32, 190),
+    ["Spider Field"] = Vector3.new(-55, 18, -20),
+    ["Strawberry Field"] = Vector3.new(-180, 20, -10),
+    ["Bamboo Field"] = Vector3.new(145, 20, -5),
+    ["Pineapple Patch"] = Vector3.new(260, 68, -195),
+    ["Stump Field"] = Vector3.new(437, 98, -175),
+    ["Cactus Field"] = Vector3.new(-195, 68, -110),
+    ["Pumpkin Patch"] = Vector3.new(180, 68, -110),
+    ["Pine Tree Forest"] = Vector3.new(-325, 68, -175),
+    ["Rose Field"] = Vector3.new(-130, 4, -135),
+    ["Mountain Top Field"] = Vector3.new(75, 176, -165),
+    ["Coconut Field"] = Vector3.new(-265, 72, 460)
+}
+
 startButton.MouseButton1Click:Connect(function()
     local settings = getgenv().MacroSettings
     if settings then
@@ -217,68 +246,71 @@ startButton.MouseButton1Click:Connect(function()
         if settings.Running then
             startButton.Text = "STOP MACRO"
             startButton.BackgroundColor3 = Color3.fromRGB(170, 0, 0)
+            
             task.spawn(function()
-                local FieldData = {
-                    ["Dandelion Field"] = Vector3.new(-75, 4, 185),
-                    ["Sunflower Field"] = Vector3.new(-200, 4, 160),
-                    ["Mushroom Field"] = Vector3.new(-105, 4, 45),
-                    ["Blue Flower Field"] = Vector3.new(115, 4, 130),
-                    ["Clover Field"] = Vector3.new(170, 32, 190),
-                    ["Spider Field"] = Vector3.new(-55, 18, -20),
-                    ["Strawberry Field"] = Vector3.new(-180, 20, -10),
-                    ["Bamboo Field"] = Vector3.new(145, 20, -5),
-                    ["Pineapple Patch"] = Vector3.new(260, 68, -195),
-                    ["Stump Field"] = Vector3.new(437, 98, -175),
-                    ["Cactus Field"] = Vector3.new(-195, 68, -110),
-                    ["Pumpkin Patch"] = Vector3.new(180, 68, -110),
-                    ["Pine Tree Forest"] = Vector3.new(-325, 68, -175),
-                    ["Rose Field"] = Vector3.new(-130, 4, -135),
-                    ["Mountain Top Field"] = Vector3.new(75, 176, -165),
-                    ["Coconut Field"] = Vector3.new(-265, 72, 460)
-                }
-
                 while settings.Running do
                     local char = LocalPlayer.Character
                     if char and char:FindFirstChild("HumanoidRootPart") then
                         local hrp = char.HumanoidRootPart
                         local humanoid = char:FindFirstChildOfClass("Humanoid")
-                        local currentField = settings.CurrentField
-                        local basePos = FieldData[currentField] or Vector3.new(0, 0, 0)
-
+                        
+                        -- Отключаем коллизию персонажа
                         for _, part in ipairs(char:GetDescendants()) do
                             if part:IsA("BasePart") then
                                 part.CanCollide = false
                             end
                         end
 
-                        -- Полет к полю через CFrame
-                        hrp.CFrame = CFrame.new(basePos + Vector3.new(0, 5, 0))
-                        task.wait(0.5)
-
-                        -- Фарм на поле в квадрате
-                        if humanoid then
-                            if settings.FarmType == "Random" then
-                                for _ = 1, 15 do
-                                    if not settings.Running then break end
-                                    humanoid:MoveTo(basePos + Vector3.new(math.random(-10, 10), 0, math.random(-10, 10)))
-                                    humanoid.MoveToFinished:Wait()
-                                end
-                            else
-                                for x = -10, 10, 3 do
-                                    for z = -10, 10, 3 do
-                                        if not settings.Running then break end
-                                        humanoid:MoveTo(basePos + Vector3.new(x, 0, z))
-                                        humanoid.MoveToFinished:Wait()
-                                    end
+                        -- Детект заполненности рюкзака
+                        local pollenText = PlayerGui:FindFirstChild("ScreenGui") and PlayerGui.ScreenGui:FindFirstChild("Stats") and PlayerGui.ScreenGui.Stats:FindFirstChild("Pollen")
+                        if pollenText then
+                            local current, max = pollenText.Text:match("(%d+)/(%d+)")
+                            if current and max then
+                                if tonumber(current) >= tonumber(max) then
+                                    settings.Farm = 0
+                                    settings.Convert = 1
+                                elseif tonumber(current) == 0 then
+                                    settings.Farm = 1
+                                    settings.Convert = 0
                                 end
                             end
                         end
 
-                        if settings.Running then
-                            -- Возврат к улью через CFrame (примерно перед ульями)
-                            local hivePos = Vector3.new((settings.HiveSlot - 1) * 6 - 15, 3, 130)
-                            hrp.CFrame = CFrame.new(hivePos)
-                            task.wait(2)
+                        -- РЕЖИМ ФАРМА (Farm = 1, Convert = 0)
+                        if settings.Farm == 1 and settings.Convert == 0 then
+                            local basePos = FieldData[settings.CurrentField] or Vector3.new(0, 5, 0)
+                            
+                            -- Телепорт на поле только если мы далеко
+                            if (hrp.Position - basePos).Magnitude > 25 then
+                                hrp.CFrame = CFrame.new(basePos + Vector3.new(0, 5, 0))
+                            end
+                            
+                            -- Ходим по полю
+                            if humanoid then
+                                if settings.FarmType == "Random" then
+                                    for _ = 1, 10 do
+                                        if not settings.Running or settings.Farm == 0 then break end
+                                        humanoid:MoveTo(basePos + Vector3.new(math.random(-12, 12), 0, math.random(-12, 12)))
+                                        humanoid.MoveToFinished:Wait()
+                                    end
+                                else
+                                    for x = -10, 10, 3 do
+                                        for z = -10, 10, 3 do
+                                            if not settings.Running or settings.Farm == 0 then break end
+                                            humanoid:MoveTo(basePos + Vector3.new(x, 0, z))
+                                            humanoid.MoveToFinished:Wait()
+                                        end
+                                    end
+                                end
+                            end
+
+                        -- РЕЖИМ КОНВЕРТАЦИИ (Farm = 0, Convert = 1)
+                        elseif settings.Farm == 0 and settings.Convert == 1 then
+                            local targetHive = HiveCoords[settings.HiveSlot] or HiveCoords[1]
+                            
+                            -- Телепорт к улью
+                            hrp.CFrame = CFrame.new(targetHive)
+                            task.wait(3)
                         end
                     end
                     task.wait(0.1)
