@@ -1,7 +1,7 @@
 getgenv().MacroSettings = {
     Running = false,
     CurrentField = "Dandelion Field",
-    FarmType = "Random", -- Доступны: "Random", "Token Collector", "Instant Collector"
+    FarmType = "Random",
     BackpackMethod = "Convert Hive",
     HiveSlot = 1,
     Farm = 1,
@@ -258,7 +258,6 @@ local function getCoreStatsPollen()
     return curr
 end
 
--- Поток для симуляции 20 кликов в секунду (для Instant Collector)
 task.spawn(function()
     while true do
         local settings = getgenv().MacroSettings
@@ -268,7 +267,7 @@ task.spawn(function()
                 task.wait(0.01)
                 VirtualInputManager:SendMouseButtonEvent(0, 0, 0, false, LocalPlayer, 0)
             end)
-            task.wait(1 / 20) -- Ровно 20 кликов в секунду
+            task.wait(1 / 20)
         else
             task.wait(0.1)
         end
@@ -284,7 +283,6 @@ startButton.MouseButton1Click:Connect(function()
         
         startListeners()
 
-        -- Сбор инструментов для обычных режимов
         task.spawn(function()
             while settings.Running do
                 if settings.Farm == 1 and settings.Convert == 0 and settings.FarmType ~= "Instant Collector" then
@@ -299,7 +297,6 @@ startButton.MouseButton1Click:Connect(function()
             end
         end)
 
-        -- Основной цикл макроса
         task.spawn(function()
             local isConvertingAtHive = false
             local waitingForReset = false
@@ -361,10 +358,8 @@ startButton.MouseButton1Click:Connect(function()
                         
                         if humanoid then
                             if settings.FarmType == "Instant Collector" then
-                                -- Радиус 32x32 студа
                                 local tokenPos = findSpawnToken(basePos, 32)
                                 if tokenPos then
-                                    -- Мгновенный полет на CFrame к токену
                                     local steps = 3
                                     local currentPos = hrp.Position
                                     for i = 1, steps do
@@ -372,10 +367,8 @@ startButton.MouseButton1Click:Connect(function()
                                         hrp.CFrame = CFrame.new(currentPos:Lerp(tokenPos + Vector3.new(0, 3, 0), i / steps))
                                         RunService.Heartbeat:Wait()
                                     end
-                                    -- Ждем 75 мс на точке токена
                                     task.wait(0.075)
                                 else
-                                    -- Если токенов нет — возвращаемся на центр поля и ждем
                                     if (hrp.Position - basePos).Magnitude > 5 then
                                         hrp.CFrame = CFrame.new(basePos + Vector3.new(0, 5, 0))
                                     end
