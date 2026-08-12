@@ -89,7 +89,6 @@ closeButton.MouseButton1Click:Connect(function()
     mainFrame.Visible = false
 end)
 
--- Выбор полей
 local fields = {
     "Dandelion Field", "Sunflower Field", "Mushroom Field", "Blue Flower Field",
     "Clover Field", "Spider Field", "Strawberry Field", "Bamboo Field",
@@ -120,7 +119,6 @@ fieldBtn.MouseButton1Click:Connect(function()
     fieldBtn.Text = "Field: " .. newField
 end)
 
--- Выбор типа фарма (Random / Token Collector)
 local farmTypes = {"Random", "Token Collector"}
 local farmTypeIndex = 1
 
@@ -146,7 +144,6 @@ farmTypeBtn.MouseButton1Click:Connect(function()
     farmTypeBtn.Text = "Farm Type: " .. newType
 end)
 
--- Выбор метода переработки (Convert Hive / Reset)
 local backpackMethods = {"Convert Hive", "Reset"}
 local methodIndex = 1
 
@@ -172,7 +169,6 @@ methodBtn.MouseButton1Click:Connect(function()
     methodBtn.Text = "Backpack Method: " .. newMethod
 end)
 
--- Выбор слота улья (1 - 6)
 local hiveSlotBtn = Instance.new("TextButton")
 hiveSlotBtn.Size = UDim2.new(0.9, 0, 0, 35)
 hiveSlotBtn.Position = UDim2.new(0.05, 0, 0.60, 0)
@@ -195,7 +191,6 @@ hiveSlotBtn.MouseButton1Click:Connect(function()
     hiveSlotBtn.Text = "Hive Slot: " .. currentSlot
 end)
 
--- Кнопка старт/стоп
 local startButton = Instance.new("TextButton")
 startButton.Size = UDim2.new(0.9, 0, 0, 45)
 startButton.Position = UDim2.new(0.05, 0, 0.78, 0)
@@ -241,29 +236,49 @@ startButton.MouseButton1Click:Connect(function()
                     ["Mountain Top Field"] = Vector3.new(75, 176, -165),
                     ["Coconut Field"] = Vector3.new(-265, 72, 460)
                 }
+
                 while settings.Running do
-                    local char = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
-                    local humanoid = char:FindFirstChildOfClass("Humanoid")
-                    local currentField = settings.CurrentField
-                    local basePos = FieldData[currentField] or Vector3.new(0, 0, 0)
-                    
-                    if humanoid then
-                        if settings.FarmType == "Random" then
-                            for x = -12, 12, 3 do
-                                for z = -12, 12, 3 do
+                    local char = LocalPlayer.Character
+                    if char and char:FindFirstChild("HumanoidRootPart") then
+                        local hrp = char.HumanoidRootPart
+                        local humanoid = char:FindFirstChildOfClass("Humanoid")
+                        local currentField = settings.CurrentField
+                        local basePos = FieldData[currentField] or Vector3.new(0, 0, 0)
+
+                        for _, part in ipairs(char:GetDescendants()) do
+                            if part:IsA("BasePart") then
+                                part.CanCollide = false
+                            end
+                        end
+
+                        -- Полет к полю через CFrame
+                        hrp.CFrame = CFrame.new(basePos + Vector3.new(0, 5, 0))
+                        task.wait(0.5)
+
+                        -- Фарм на поле в квадрате
+                        if humanoid then
+                            if settings.FarmType == "Random" then
+                                for _ = 1, 15 do
                                     if not settings.Running then break end
-                                    humanoid:MoveTo(basePos + Vector3.new(math.random(-6, 6), 0, math.random(-6, 6)))
+                                    humanoid:MoveTo(basePos + Vector3.new(math.random(-10, 10), 0, math.random(-10, 10)))
                                     humanoid.MoveToFinished:Wait()
                                 end
-                            end
-                        else
-                            for x = -12, 12, 3 do
-                                for z = -12, 12, 3 do
-                                    if not settings.Running then break end
-                                    humanoid:MoveTo(basePos + Vector3.new(x, 0, z))
-                                    humanoid.MoveToFinished:Wait()
+                            else
+                                for x = -10, 10, 3 do
+                                    for z = -10, 10, 3 do
+                                        if not settings.Running then break end
+                                        humanoid:MoveTo(basePos + Vector3.new(x, 0, z))
+                                        humanoid.MoveToFinished:Wait()
+                                    end
                                 end
                             end
+                        end
+
+                        if settings.Running then
+                            -- Возврат к улью через CFrame (примерно перед ульями)
+                            local hivePos = Vector3.new((settings.HiveSlot - 1) * 6 - 15, 3, 130)
+                            hrp.CFrame = CFrame.new(hivePos)
+                            task.wait(2)
                         end
                     end
                     task.wait(0.1)
