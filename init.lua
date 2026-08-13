@@ -363,6 +363,12 @@ startButton.MouseButton1Click:Connect(function()
                     if settings.Farm == 1 and settings.Convert == 0 then
                         local basePos = FieldData[settings.CurrentField] or Vector3.new(0, 5, 0)
                         
+                        -- Телепортируем на поле через CFrame, если персонаж далеко (например, после улья)
+                        if (hrp.Position - basePos).Magnitude > 40 then
+                            hrp.CFrame = CFrame.new(basePos + Vector3.new(0, 2, 0))
+                            task.wait(0.2)
+                        end
+                        
                         if humanoid then
                             if settings.FarmType == "Instant Collector" then
                                 local tokenPos = findAndRemoveToken(basePos, 32)
