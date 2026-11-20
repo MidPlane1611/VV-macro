@@ -82,6 +82,7 @@ local Replay = {
 
 local ROOT_FOLDER = "ReplayStandalone"
 local HISTORY_FILE = ROOT_FOLDER .. "/recordings.json"
+local EXPORT_FOLDER = ROOT_FOLDER .. "/Exports"
 
 local COLORS = {
     Background = Color3.fromRGB(18, 20, 27),
@@ -483,6 +484,174 @@ end]], firstPosition.targetX, firstPosition.targetY, firstPosition.targetZ))
     table.insert(lines, "do local h = getHum(); if h then h.Jump = false; h:Move(Vector3.zero, false) end end")
 
     return table.concat(lines, "\n")
+end
+
+-- Clipboard support varies between executors and Android emulators.
+-- Try common executor APIs, but also export a file so copying is not the only option.
+local function getGlobalFunction(name)
+    local value
+    pcall(function() value = ENV[name] end)
+    if type(value) ~= "function" then
+        pcall(function() value = _G[name] end)
+    end
+    return type(value) == "function" and value or nil
+end
+
+local function tryClipboardWrite(text)
+    if type(text) ~= "string" then
+        return false, "Clipboard text must be a string."
+    end
+
+    local functionNames = {
+        "setclipboard",
+        "toclipboard",
+        "set_clipboard",
+        "setClipboard",
+        "writeclipboard",
+        "write_clipboard",
+    }
+
+    local attempted = {}
+    for _, name in ipairs(functionNames) do
+        local api = getGlobalFunction(name)
+        if api then
+            table.insert(attempted, name)
+            local ok, err = pcall(api, text)
+            if ok then
+                return true, name
+            end
+            table.insert(attempted, tostring(err))
+        end
+    end
+
+    local namespaceCandidates = {
+        {namespace = "syn", methods = {"setclipboard", "write_clipboard", "set_clipboard"}},
+        {namespace = "fluxus", methods = {"setclipboard", "toclipboard", "writeclipboard"}},
+    }
+    for _, candidate in ipairs(namespaceCandidates) do
+        local namespace
+        pcall(function() namespace = ENV[candidate.namespace] end)
+        if type(namespace) ~= "table" then
+            pcall(function() namespace = _G[candidate.namespace] end)
+        end
+        if type(namespace) == "table" then
+            for _, methodName in ipairs(candidate.methods) do
+                local api = namespace[methodName]
+                if type(api) == "function" then
+                    table.insert(attempted, candidate.namespace .. "." .. methodName)
+                    local ok = pcall(api, text)
+                    if not ok then
+                        ok = pcall(api, namespace, text)
+                    end
+                    if ok then
+                        return true, candidate.namespace .. "." .. methodName
+                    end
+                end
+            end
+        end
+    end
+
+    local tableNames = {"Clipboard", "clipboard"}
+    for _, tableName in ipairs(tableNames) do
+        local apiTable
+        pcall(function() apiTable = ENV[tableName] end)
+        if type(apiTable) ~= "table" then
+            pcall(function() apiTable = _G[tableName] end)
+        end
+        if type(apiTable) == "table" then
+            for _, methodName in ipairs({"set", "write", "copy"}) do
+                local method = apiTable[methodName]
+                if type(method) == "function" then
+                    table.insert(attempted, tableName .. "." .. methodName)
+                    local ok = pcall(method, text)
+                    if not ok then
+                        ok = pcall(method, apiTable, text)
+                    end
+                    if ok then
+                        return true, tableName .. "." .. methodName
+                    end
+                end
+            end
+        end
+    end
+
+    if #attempted == 0 then
+        return false, "No supported clipboard API was found."
+    end
+    return false, "Clipboard APIs were found but all attempts failed."
+end
+
+local function writeExportFile(extension, contents)
+    if type(writefile) ~= "function" then
+        return false, "Executor writefile API is unavailable."
+    end
+
+    ensureFolder()
+    if type(makefolder) == "function" then
+        local folderExists = false
+        if type(isfolder) == "function" then
+            local ok, exists = pcall(isfolder, EXPORT_FOLDER)
+            folderExists = ok and exists == true
+        end
+        if not folderExists then
+            pcall(makefolder, EXPORT_FOLDER)
+        end
+    end
+
+    local stamp = os.date("%Y%m%d_%H%M%S")
+    local suffix = tostring(math.random(1000, 9999))
+    local fileName = "Replay_" .. stamp .. "_" .. suffix .. extension
+    local path = EXPORT_FOLDER .. "/" .. fileName
+    local ok, err = pcall(writefile, path, contents)
+    if not ok then
+        return false, "Could not write " .. path .. ": " .. tostring(err)
+    end
+    return true, path
+end
+
+local function makeExportEntry(entry)
+    entry = entry or Replay.currentEntry
+    if type(entry) ~= "table" then
+        return nil, "No recording is selected."
+    end
+
+    return {
+        name = tostring(entry.name or "Replay"),
+        timestamp = tonumber(entry.timestamp) or os.time(),
+        duration = tonumber(entry.duration) or 0,
+        events = tonumber(entry.events) or #(entry.queue or {}),
+        codeSize = tonumber(entry.codeSize) or 0,
+        queue = type(entry.queue) == "table" and entry.queue or {},
+    }
+end
+
+function Replay.exportCode(entry)
+    entry = entry or Replay.currentEntry
+    if type(entry) ~= "table" then
+        return false, "No recording is selected."
+    end
+
+    local code = entry._cachedCode
+    if type(code) ~= "string" or code == "" then
+        code = Replay.generateCode(entry.queue or {}, entry.duration or 0)
+        entry._cachedCode = code
+    end
+    return writeExportFile(".lua", code)
+end
+
+function Replay.exportRecording(entry)
+    local exportEntry, entryError = makeExportEntry(entry)
+    if not exportEntry then
+        return false, entryError
+    end
+
+    local okEncode, encoded = pcall(function()
+        return HttpService:JSONEncode(exportEntry)
+    end)
+    if not okEncode then
+        return false, "Could not encode recording: " .. tostring(encoded)
+    end
+    return writeExportFile(".json", encoded)
 end
 
 local function getMissingHookAPIs()
@@ -1028,20 +1197,30 @@ local function renderCode()
     end
 
     local copyButton
+    local copyStatus
     copyButton = makeButton(content, "Copy Code", UDim2.fromOffset(100, 26), UDim2.new(1, -108, 0, 4), function()
-        if type(setclipboard) ~= "function" then
-            copyButton.Text = "No clipboard API"
-            task.delay(1.2, function()
-                if copyButton and copyButton.Parent then
-                    copyButton.Text = "Copy Code"
-                end
-            end)
-            return
+        local copied, apiName = tryClipboardWrite(code)
+        local saved, exportPath = Replay.exportCode(entry)
+
+        if copied and saved then
+            copyButton.Text = "Clipboard + File"
+            copyStatus.Text = "Clipboard API: " .. tostring(apiName) .. " | Backup: " .. tostring(exportPath)
+            copyStatus.TextColor3 = COLORS.Green
+        elseif copied then
+            copyButton.Text = "Clipboard API OK"
+            copyStatus.Text = "Clipboard API accepted the text (" .. tostring(apiName) .. "). " .. tostring(exportPath)
+            copyStatus.TextColor3 = COLORS.Yellow
+        elseif saved then
+            copyButton.Text = "Saved to File"
+            copyStatus.Text = "Clipboard unavailable. Exported instead: " .. tostring(exportPath)
+            copyStatus.TextColor3 = COLORS.Yellow
+        else
+            copyButton.Text = "Copy Failed"
+            copyStatus.Text = tostring(apiName) .. " | " .. tostring(exportPath)
+            copyStatus.TextColor3 = COLORS.Red
         end
 
-        local ok = pcall(setclipboard, code)
-        copyButton.Text = ok and "Copied!" or "Copy failed"
-        task.delay(1.2, function()
+        task.delay(3, function()
             if copyButton and copyButton.Parent then
                 copyButton.Text = "Copy Code"
             end
@@ -1055,9 +1234,24 @@ local function renderCode()
             .. " | Code: " .. formatBytes(#code),
         UDim2.new(1, -16, 0, 18), UDim2.fromOffset(8, 36), 9, COLORS.Muted)
 
+    local exportLuaButton = makeButton(content, "Save .lua", UDim2.new(0.32, -6, 0, 25), UDim2.fromOffset(8, 60), function()
+        local ok, result = Replay.exportCode(entry)
+        copyStatus.Text = ok and ("Saved: " .. tostring(result)) or tostring(result)
+        copyStatus.TextColor3 = ok and COLORS.Green or COLORS.Red
+    end, COLORS.Panel2)
+    exportLuaButton.TextSize = 9
+
+    local exportJsonButton = makeButton(content, "Save JSON", UDim2.new(0.32, -6, 0, 25), UDim2.new(0.34, 0, 0, 60), function()
+        local ok, result = Replay.exportRecording(entry)
+        copyStatus.Text = ok and ("Saved: " .. tostring(result)) or tostring(result)
+        copyStatus.TextColor3 = ok and COLORS.Green or COLORS.Red
+    end, COLORS.Panel2)
+    exportJsonButton.TextSize = 9
+
+    local selectAllButton
     local codeBox = create("TextBox", {
-        Position = UDim2.fromOffset(8, 60),
-        Size = UDim2.new(1, -16, 1, -68),
+        Position = UDim2.fromOffset(8, 112),
+        Size = UDim2.new(1, -16, 1, -144),
         BackgroundColor3 = COLORS.Panel,
         BorderSizePixel = 0,
         Text = code,
@@ -1070,10 +1264,30 @@ local function renderCode()
         TextWrapped = false,
         ClearTextOnFocus = false,
         MultiLine = true,
-        TextEditable = false,
+        TextEditable = true,
     }, content)
     addCorner(codeBox, 6)
     addStroke(codeBox, COLORS.Border, 0.5)
+
+    selectAllButton = makeButton(content, "Select All", UDim2.new(0.32, -6, 0, 25), UDim2.new(0.68, 0, 0, 60), function()
+        codeBox:CaptureFocus()
+        task.defer(function()
+            if codeBox and codeBox.Parent then
+                pcall(function()
+                    codeBox.SelectionStart = 1
+                    codeBox.CursorPosition = #codeBox.Text + 1
+                end)
+            end
+        end)
+        copyStatus.Text = "All text selected. Use the emulator's Copy command."
+        copyStatus.TextColor3 = COLORS.Muted
+    end, COLORS.Panel2)
+    selectAllButton.TextSize = 9
+
+    copyStatus = makeLabel(content,
+        "Tap Select All, then use the emulator's Copy command. File exports are in " .. EXPORT_FOLDER .. ".",
+        UDim2.new(1, -16, 0, 18), UDim2.fromOffset(8, 88), 8, COLORS.Muted)
+    copyStatus.TextWrapped = false
 end
 
 local function renderBlacklist()
@@ -1518,6 +1732,9 @@ Replay.Stop = function()
     return Replay.stopAndSave(true)
 end
 Replay.GenerateCode = Replay.generateCode
+Replay.ExportCode = Replay.exportCode
+Replay.ExportRecording = Replay.exportRecording
+Replay.CopyText = tryClipboardWrite
 Replay.Hide = function() setHidden(true) end
 Replay.Show = function() setHidden(false) end
 
